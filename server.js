@@ -1,6 +1,8 @@
 const express = require("express");
 const fs = require("fs");
 
+const reproduce = require("./reproduction");
+
 const app = express();
 const PORT = process.env.PORT || 3333;
 
@@ -20,10 +22,40 @@ app.get("/organisms",(req,res)=>{
   res.json(all);
 });
 
-app.listen(PORT,()=>console.log("Server on",PORT));
+function ensurePlanet(name){
+  if(!fs.existsSync("organisms")) fs.mkdirSync("organisms");
+  const dir="organisms/"+name;
+  if(!fs.existsSync(dir)) fs.mkdirSync(dir);
+}
 
-// keep process alive
-setInterval(()=>{}, 1<<30);
+function runPlanet(name){
+  const dir="organisms/"+name;
+  const files=fs.readdirSync(dir).filter(f=>f.endsWith(".json"));
+  const list=files.map(f=>JSON.parse(fs.readFileSync(dir+"/"+f)));
 
-// start planets engine
-require("./planets");
+  if(list.length>=2 && Math.random()<0.5){
+    const a=list[Math.floor(Math.random()*list.length)];
+    const b=list[Math.floor(Math.random()*list.length)];
+    const baby=reproduce.mate(a,b);
+    fs.writeFileSync(dir+"/"+baby.name+".json",JSON.stringify(baby,null,2));
+  }
+
+  files.forEach((f,i)=>{
+    const g=list[i];
+    const age=(Date.now()-g.born)/86400000;
+    if(age>2 && Math.random()<0.2){
+      fs.unlinkSync(dir+"/"+f);
+    }
+  });
+}
+
+app.listen(PORT,()=>{
+  console.log("Server on",PORT);
+  console.log("PLANETS ENGINE ONLINE");
+
+  setInterval(()=>{
+    ensurePlanet("sol");
+    runPlanet("sol");
+    console.log("Planet heartbeat", new Date().toISOString());
+  },60000);
+});
