@@ -2,8 +2,6 @@ const fs = require("fs");
 
 function maybeCreatePlanet(){
   const count = fs.readdirSync("organisms").length;
-
-  // slow exponential expansion
   if(count < 12 && Math.random() < 0.02){
     const name = "p" + Math.floor(Math.random()*100000);
     fs.mkdirSync("organisms/"+name);
