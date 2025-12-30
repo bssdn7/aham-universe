@@ -5,7 +5,8 @@ function planetStats(count){
 }
 
 function conflictChance(stats){
-  return Math.min(0.4, stats.hostility * 0.6);
+  return Math.min(0.6, stats.hostility * 0.8);
 }
 
 module.exports = { planetStats, conflictChance };
+
