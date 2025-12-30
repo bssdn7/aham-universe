@@ -2,7 +2,7 @@ const fs = require("fs");
 
 function maybeCreatePlanet(){
   const count = fs.readdirSync("organisms").length;
-  if(count < 12 && Math.random() < 0.02){
+  if(count < 12 && Math.random() < 0.1){
     const name = "p" + Math.floor(Math.random()*100000);
     fs.mkdirSync("organisms/"+name);
     console.log("🌍 Planet formed:", name);
@@ -21,3 +21,4 @@ function maybeDestroyPlanet(){
 }
 
 module.exports = { maybeCreatePlanet, maybeDestroyPlanet };
+
