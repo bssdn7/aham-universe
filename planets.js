@@ -4,8 +4,8 @@ const social = require("./social");
 const reproduce = require("./reproduction");
 const war = require("./war");
 
-const LIFE_DAYS = 30;
-const MIGRATE_CHANCE = 0.015;
+const LIFE_DAYS = 7;
+const MIGRATE_CHANCE = 0.1;
 
 function clamp(v){ return Math.max(0, Math.min(1, v)); }
 
@@ -42,7 +42,7 @@ function runPlanet(planet){
   });
 
   // reproduction
-  if(list.length >= 2 && Math.random() < 0.04){
+  if(list.length >= 2 && Math.random() < 0.2){
     const a = list[Math.floor(Math.random()*list.length)];
     const b = list[Math.floor(Math.random()*list.length)];
     if(a.name !== b.name){
@@ -77,4 +77,5 @@ setInterval(()=>{
   planetLife.maybeCreatePlanet();
   planetLife.maybeDestroyPlanet();
 }, 60000);
+
 
