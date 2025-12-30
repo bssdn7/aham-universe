@@ -1,0 +1,22 @@
+{
+  "name": "TERA",
+  "currentLife": 1,
+  "coreTraits": {
+    "chaosSensitivity": 0.71457395186106987,
+    "learningRate": 0.80474949612711614,
+    "darkAffinity": 0.6206425370153994
+  },
+  "golden": {
+    "active": false,
+    "until": null,
+    "events": []
+  },
+  "altar": false,
+  "moon": 0.35057781477049543,
+  "born": 1767090364272,
+  "reborn": false,
+  "fossilLives": [],
+  "solar": "sunset",
+  "season": "deepwinter",
+  "month": "December"
+}
