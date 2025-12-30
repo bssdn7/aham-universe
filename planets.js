@@ -1,3 +1,4 @@
+console.log("planet engine online");
 const planetLife = require("./planet_life");
 const fs = require("fs");
 const social = require("./social");
@@ -85,7 +86,9 @@ setInterval(()=>{
   fs.readdirSync("organisms").forEach(runPlanet);
   planetLife.maybeCreatePlanet();
   planetLife.maybeDestroyPlanet();
+  console.log("Planet heartbeat", new Date().toISOString());
 }, 60000);
+
 
 
 
