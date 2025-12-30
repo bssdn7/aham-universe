@@ -81,3 +81,4 @@ app.get("/timeline",(req,res)=>{
 });
 
 app.listen(PORT);
+require("./planets");
