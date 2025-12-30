@@ -1,36 +1,36 @@
 // ===================== STATE =====================
-let moon = 0, solar="day", season="summer";
-const beings = [];
-let lastPulse = 0;
+let moon=0, solar="day", season="summer";
+const beings=[];
+const planetDots={};
+let lastPulse=0;
 
 // ===================== SCENE =====================
-const scene = new THREE.Scene();
-
-const cam = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
+const scene=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,0.1,1000);
 cam.position.set(0,0,9);
 
-const ren = new THREE.WebGLRenderer({antialias:true});
-ren.setSize(innerWidth, innerHeight);
+const ren=new THREE.WebGLRenderer({antialias:true});
+ren.setSize(innerWidth,innerHeight);
 ren.setPixelRatio(Math.min(devicePixelRatio,2));
 ren.setClearColor(0x000010,1);
-ren.outputColorSpace = THREE.SRGBColorSpace;
-ren.toneMapping = THREE.ACESFilmicToneMapping;
-ren.toneMappingExposure = 1.2;
+ren.outputColorSpace=THREE.SRGBColorSpace;
+ren.toneMapping=THREE.ACESFilmicToneMapping;
+ren.toneMappingExposure=1.2;
 document.body.appendChild(ren.domElement);
 
 // ===================== LIGHT =====================
 scene.add(new THREE.AmbientLight(0x777777));
-const sun = new THREE.PointLight(0xffffff,1.6,100);
+const sun=new THREE.PointLight(0xffffff,1.6,100);
 sun.position.set(6,6,6);
 scene.add(sun);
 
 // ===================== STARS =====================
-const starGeo = new THREE.BufferGeometry();
-const starPos = [];
+const starGeo=new THREE.BufferGeometry();
+const starPos=[];
 for(let i=0;i<1400;i++){
   starPos.push((Math.random()-0.5)*120,(Math.random()-0.5)*120,(Math.random()-0.5)*120);
 }
-starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPos,3));
+starGeo.setAttribute("position",new THREE.Float32BufferAttribute(starPos,3));
 scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0x6666ff,size:0.18})));
 
 // ===================== NEBULA =====================
@@ -48,27 +48,76 @@ for(let i=0;i<6;i++){
   scene.add(p); nebula.push(p);
 }
 
-// ===================== CREATE BEINGS =====================
-function createBeing(){
-  const m=new THREE.Mesh(
-    new THREE.IcosahedronGeometry(1,4),
-    new THREE.MeshStandardMaterial({roughness:0.4,metalness:0.2})
+// ===================== DOT FACTORY =====================
+function makeDot(){
+  return new THREE.Mesh(
+    new THREE.SphereGeometry(0.06,8,8),
+    new THREE.MeshBasicMaterial({color:0x66ccff,transparent:true,opacity:0.85})
   );
-  scene.add(m); beings.push(m);
 }
-createBeing(); createBeing(); createBeing();
 
-// ===================== LOAD ORGANISMS =====================
+// ===================== LOAD / BUILD =====================
 async function load(){
-  const list = await fetch("/organisms").then(r=>r.json());
-  const R = 3.6;
+  const list=await fetch("/organisms").then(r=>r.json());
 
-  list.forEach((g,i)=>{
-    if(!beings[i]) createBeing();
-    const b = beings[i];
-    b.userData = g;
-    const a=i*(Math.PI*2/list.length);
+  // build planet grouping
+  const byPlanet={};
+  list.forEach(o=>{
+    byPlanet[o.planet]=byPlanet[o.planet]||[];
+    byPlanet[o.planet].push(o);
+  });
+
+  // remove dead planet meshes
+  while(beings.length>Object.keys(byPlanet).length){
+    const b=beings.pop();
+    scene.remove(b);
+  }
+
+  // planet mesh map
+  const planetMeshByName={};
+  const planets=Object.keys(byPlanet);
+  const R=3.6;
+
+  planets.forEach((pName,i)=>{
+    if(!beings[i]){
+      const m=new THREE.Mesh(
+        new THREE.IcosahedronGeometry(1,4),
+        new THREE.MeshStandardMaterial({roughness:0.4,metalness:0.2})
+      );
+      scene.add(m); beings.push(m);
+    }
+    const b=beings[i];
+    const a=i*(Math.PI*2/planets.length);
     b.position.set(Math.cos(a)*R,0,Math.sin(a)*R);
+    planetMeshByName[pName]=b;
+  });
+
+  // clear old dots
+  Object.keys(planetDots).forEach(p=>{
+    planetDots[p].forEach(d=>scene.remove(d));
+  });
+  for(const k in planetDots) delete planetDots[k];
+
+  // add dots per planet
+  Object.keys(byPlanet).forEach(pName=>{
+    const dots=[];
+    const count=byPlanet[pName].length;
+    const Rdot=1.6;
+    const planetMesh=planetMeshByName[pName];
+    if(!planetMesh) return;
+
+    for(let i=0;i<count;i++){
+      const dot=makeDot();
+      const a=i*(Math.PI*2/count);
+      dot.position.set(
+        planetMesh.position.x+Math.cos(a)*Rdot,
+        planetMesh.position.y+Math.sin(a)*Rdot,
+        planetMesh.position.z
+      );
+      scene.add(dot);
+      dots.push(dot);
+    }
+    planetDots[pName]=dots;
   });
 
   const g0=list[0]||{};
@@ -88,52 +137,31 @@ function animate(){
   });
 
   const lunarGlow=0.3+Math.sin(moon*Math.PI*2)*0.2;
-  let solarGlow={dawn:1.4,morning:1.2,noon:1.6,sunset:1.1,night:0.7,deepnight:0.4}[solar]||1;
+  const solarGlow={dawn:1.4,morning:1.2,noon:1.6,sunset:1.1,night:0.7,deepnight:0.4}[solar]||1;
   const seasonBoost={winter:-0.15,spring:0.1,summer:0.25,autumn:0.05}[season]||0;
 
   beings.forEach((b,i)=>{
-    const g=b.userData; if(!g) return;
-    const {chaosSensitivity:chaos,learningRate:learn,darkAffinity:dark}=g.coreTraits;
-
+    const chaos=Math.random();
     b.rotation.x+=0.0006+chaos*0.0006;
     b.rotation.y+=0.0009+chaos*0.0008;
-
-    if(g.golden?.active){
-      b.material.color.setRGB(1,0.84,0.15);
-      b.material.emissive.setRGB(1,0.6,0.15);
-    }else{
-      b.material.color.setHSL(0.35-dark*0.25+chaos*0.15,0.8,0.45+learn*0.2);
-      b.material.emissive.setRGB(chaos*0.8,(1-chaos)*0.4,dark*0.6);
-    }
-
+    b.material.color.setHSL(0.55-chaos*0.3,0.8,0.45);
+    b.material.emissive.setRGB(chaos*0.8,(1-chaos)*0.4,0.4);
     b.material.emissive.multiplyScalar(lunarGlow*solarGlow);
     b.material.emissive.addScalar(seasonBoost);
   });
 
-  // communication pulses
-  if(Date.now()-lastPulse>1200){
-    beings.forEach(b=>{
-      if(Math.random()<0.15){
-        const r=new THREE.Mesh(
-          new THREE.RingGeometry(1.1,1.16,32),
-          new THREE.MeshBasicMaterial({
-            color:b.material.color,
-            transparent:true,opacity:0.6,side:THREE.DoubleSide
-          })
-        );
-        r.position.copy(b.position);
-        r.lookAt(cam.position);
-        scene.add(r);
-        let life=30;
-        const id=setInterval(()=>{
-          r.scale.multiplyScalar(1.05);
-          r.material.opacity-=0.02;
-          if(--life<=0){scene.remove(r);clearInterval(id);}
-        },30);
-      }
+  Object.keys(planetDots).forEach(pName=>{
+    const dots=planetDots[pName];
+    const planetMesh=beings[Object.keys(planetDots).indexOf(pName)];
+    if(!planetMesh) return;
+    dots.forEach((d,i)=>{
+      const a=Date.now()*0.0002+i*(Math.PI*2/dots.length);
+      const Rdot=1.6;
+      d.position.x=planetMesh.position.x+Math.cos(a)*Rdot;
+      d.position.y=planetMesh.position.y+Math.sin(a)*Rdot;
+      d.position.z=planetMesh.position.z;
     });
-    lastPulse=Date.now();
-  }
+  });
 
   ren.render(scene,cam);
 }
