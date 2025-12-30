@@ -1,3 +1,4 @@
+const fetch = require("node-fetch");
 const express = require("express");
 const fs = require("fs");
 const war = require("./war");
@@ -76,11 +77,13 @@ app.get("/timeline",(req,res)=>{
   });
   res.json({nodes,links});
 });
-
+app.get("/health",(req,res)=>{
+  res.send("alive");
+});
 app.listen(PORT, ()=>console.log("Server on", PORT));
-
+setInterval(()=>{
+  fetch(`http://localhost:${PORT}/health`).catch(()=>{});
+}, 30000);
 // start the living engine in-process
 require("./planets");
 
-// keep Node alive forever (Railway safe)
-setInterval(()=>{}, 1<<30);
