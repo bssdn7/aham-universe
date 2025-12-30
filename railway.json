@@ -1,8 +1,6 @@
 {
-  "build": {
-    "builder": "NIXPACKS",
-    "buildCommand": "npm install"
-  },
-  "deploy": { "startCommand": "node planets.js & node server.js" }
+  "build": { "builder": "NIXPACKS" },
+  "deploy": {
+    "startCommand": "node server.js"
+  }
 }
-
