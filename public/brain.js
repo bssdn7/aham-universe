@@ -1,7 +1,8 @@
 // ===================== STATE =====================
 let moon=0, solar="day", season="summer";
-const beings=[];
-const planetDots={};
+const planetRegistry = {};
+let planetList = [];
+const planetDots = {};
 let lastPulse=0;
 
 // ===================== SCENE =====================
@@ -56,7 +57,7 @@ function makeDot(){
   );
 }
 
-// ===================== LOAD / BUILD =====================
+// ===================== LOAD =====================
 async function load(){
   const list=await fetch("/organisms").then(r=>r.json());
 
@@ -66,39 +67,48 @@ async function load(){
     byPlanet[o.planet].push(o);
   });
 
-  while(beings.length>Object.keys(byPlanet).length){
-    scene.remove(beings.pop());
-  }
+  planetList = Object.keys(byPlanet);
 
-  const planetMeshByName={};
-  const planets=Object.keys(byPlanet);
-  const R=3.6;
-
-  planets.forEach((pName,i)=>{
-    if(!beings[i]){
+  // Create new planet meshes
+  planetList.forEach(pName=>{
+    if(!planetRegistry[pName]){
       const m=new THREE.Mesh(
         new THREE.IcosahedronGeometry(1,4),
         new THREE.MeshStandardMaterial({roughness:0.4,metalness:0.2})
       );
-      scene.add(m); beings.push(m);
+      scene.add(m);
+      planetRegistry[pName]=m;
     }
-    const b=beings[i];
-    const a=i*(Math.PI*2/planets.length);
-    b.position.set(Math.cos(a)*R,0,Math.sin(a)*R);
-    planetMeshByName[pName]=b;
   });
 
+  // Remove dead planets
+  Object.keys(planetRegistry).forEach(p=>{
+    if(!planetList.includes(p)){
+      scene.remove(planetRegistry[p]);
+      delete planetRegistry[p];
+    }
+  });
+
+  // Position planets
+  const R=3.6;
+  planetList.forEach((pName,i)=>{
+    const b=planetRegistry[pName];
+    const a=i*(Math.PI*2/planetList.length);
+    b.position.set(Math.cos(a)*R,0,Math.sin(a)*R);
+  });
+
+  // Clear old dots
   Object.keys(planetDots).forEach(p=>{
     planetDots[p].forEach(d=>scene.remove(d));
   });
   for(const k in planetDots) delete planetDots[k];
 
-  Object.keys(byPlanet).forEach(pName=>{
+  // Add population dots
+  planetList.forEach(pName=>{
     const dots=[];
     const count=byPlanet[pName].length;
     const Rdot=1.6;
-    const planetMesh=planetMeshByName[pName];
-    if(!planetMesh) return;
+    const planetMesh=planetRegistry[pName];
 
     for(let i=0;i<count;i++){
       const dot=makeDot();
@@ -108,6 +118,7 @@ async function load(){
         planetMesh.position.y+Math.sin(a)*Rdot,
         planetMesh.position.z
       );
+      dot.userData = byPlanet[pName][i];
       scene.add(dot);
       dots.push(dot);
     }
@@ -134,44 +145,41 @@ function animate(){
   const solarGlow={dawn:1.4,morning:1.2,noon:1.6,sunset:1.1,night:0.7,deepnight:0.4}[solar]||1;
   const seasonBoost={winter:-0.15,spring:0.1,summer:0.25,autumn:0.05}[season]||0;
 
-  beings.forEach((b,i)=>{
-    const pName=Object.keys(planetDots)[i];
+  planetList.forEach(pName=>{
+    const planet=planetRegistry[pName];
     const dots=planetDots[pName]||[];
-    const g=dots[0]?.userData||null;
-
+    const g=dots[0]?.userData;
     if(!g) return;
 
     const chaos=g.coreTraits.chaosSensitivity;
     const learn=g.coreTraits.learningRate;
     const dark=g.coreTraits.darkAffinity;
 
-    b.rotation.x+=0.0006+chaos*0.0006;
-    b.rotation.y+=0.0009+chaos*0.0008;
+    planet.rotation.x+=0.0006+chaos*0.0006;
+    planet.rotation.y+=0.0009+chaos*0.0008;
 
     if(g.golden?.active){
-      b.material.color.setRGB(1,0.84,0.15);
-      b.material.emissive.setRGB(1,0.6,0.15);
+      planet.material.color.setRGB(1,0.84,0.15);
+      planet.material.emissive.setRGB(1,0.6,0.15);
     }else{
-      b.material.color.setHSL(0.35-dark*0.25+chaos*0.15,0.8,0.45+learn*0.2);
-      b.material.emissive.setRGB(chaos*0.8,(1-chaos)*0.4,dark*0.6);
+      planet.material.color.setHSL(0.35-dark*0.25+chaos*0.15,0.8,0.45+learn*0.2);
+      planet.material.emissive.setRGB(chaos*0.8,(1-chaos)*0.4,dark*0.6);
     }
 
-    b.material.emissive.multiplyScalar(lunarGlow*solarGlow);
-    b.material.emissive.addScalar(seasonBoost);
+    planet.material.emissive.multiplyScalar(lunarGlow*solarGlow);
+    planet.material.emissive.addScalar(seasonBoost);
   });
 
-  Object.keys(planetDots).forEach(pName=>{
-    const dots=planetDots[pName];
-    const idx=Object.keys(planetDots).indexOf(pName);
-    const planetMesh=beings[idx];
-    if(!planetMesh) return;
-
+  // Orbit dots
+  planetList.forEach(pName=>{
+    const planet=planetRegistry[pName];
+    const dots=planetDots[pName]||[];
     dots.forEach((d,i)=>{
       const a=Date.now()*0.0002+i*(Math.PI*2/dots.length);
       const Rdot=1.6;
-      d.position.x=planetMesh.position.x+Math.cos(a)*Rdot;
-      d.position.y=planetMesh.position.y+Math.sin(a)*Rdot;
-      d.position.z=planetMesh.position.z;
+      d.position.x=planet.position.x+Math.cos(a)*Rdot;
+      d.position.y=planet.position.y+Math.sin(a)*Rdot;
+      d.position.z=planet.position.z;
     });
   });
 
