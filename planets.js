@@ -24,7 +24,11 @@ function runPlanet(planet){
   list.forEach((g,i)=>{
     if(!g.born) g.born = Date.now();
     const age = (Date.now()-g.born)/86400000;
-
+    // weak genetics die faster
+const weakness = (1-g.coreTraits.learningRate) + g.coreTraits.darkAffinity*0.5;
+if(Math.random() < weakness*0.002){
+  try{ fs.unlinkSync(dir+"/"+g.name+".json"); }catch(e){}
+}
     // social influence
     list.forEach(o=>{
       if(o.name !== g.name) social.interact(g,o);
@@ -50,7 +54,12 @@ function runPlanet(planet){
       fs.writeFileSync(dir+"/"+baby.name+".json", JSON.stringify(baby,null,2));
     }
   }
-
+  // rare super-species emergence
+if(list.length > 8 && Math.random() < 0.01){
+  const s = list[Math.floor(Math.random()*list.length)];
+  s.golden = { active:true, since:Date.now() };
+  fs.writeFileSync(dir+"/"+s.name+".json", JSON.stringify(s,null,2));
+}
   // migration
   if(list.length > 1 && Math.random() < MIGRATE_CHANCE){
     const migrant = list[Math.floor(Math.random()*list.length)];
@@ -77,5 +86,6 @@ setInterval(()=>{
   planetLife.maybeCreatePlanet();
   planetLife.maybeDestroyPlanet();
 }, 60000);
+
 
 
