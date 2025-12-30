@@ -4,9 +4,10 @@ const war = require("./war");
 
 const app = express();
 const PORT = process.env.PORT || 3333;
+
 app.use(express.static("public"));
 
-// ===================== ORGANISMS =====================
+// ---- APIs ----
 app.get("/organisms",(req,res)=>{
   const all=[];
   fs.readdirSync("organisms").forEach(p=>{
@@ -18,7 +19,6 @@ app.get("/organisms",(req,res)=>{
   res.json(all);
 });
 
-// ===================== PLANETS =====================
 app.get("/planets",(req,res)=>{
   const out={};
   fs.readdirSync("organisms").forEach(p=>{
@@ -28,19 +28,18 @@ app.get("/planets",(req,res)=>{
   res.json(out);
 });
 
-// ===================== FEED =====================
 app.get("/feed",(req,res)=>{
   const name=req.query.name;
   if(!name) return res.send("Missing name");
 
-  let found=null, filePath=null;
+  let filePath=null;
   fs.readdirSync("organisms").forEach(p=>{
     const path="organisms/"+p+"/"+name+".json";
-    if(fs.existsSync(path)){ found=p; filePath=path; }
+    if(fs.existsSync(path)) filePath=path;
   });
   if(!filePath) return res.send("Unknown organism");
 
-  let g=JSON.parse(fs.readFileSync(filePath));
+  const g=JSON.parse(fs.readFileSync(filePath));
   const sleep=parseFloat(req.query.sleep||6);
   const heart=parseFloat(req.query.heart||70);
   const screen=parseFloat(req.query.screen||5);
@@ -53,7 +52,6 @@ app.get("/feed",(req,res)=>{
   res.json({fed:name, traits:g.coreTraits});
 });
 
-// ===================== COSMIC FOSSILS =====================
 app.get("/cosmic-fossils",(req,res)=>{
   const out=[];
   fs.readdirSync("organisms").forEach(p=>{
@@ -67,7 +65,6 @@ app.get("/cosmic-fossils",(req,res)=>{
   res.json(out);
 });
 
-// ===================== TIMELINE =====================
 app.get("/timeline",(req,res)=>{
   const nodes=[], links=[];
   fs.readdirSync("organisms").forEach(p=>{
@@ -80,6 +77,10 @@ app.get("/timeline",(req,res)=>{
   res.json({nodes,links});
 });
 
-app.listen(PORT);
+app.listen(PORT, ()=>console.log("Server on", PORT));
+
+// start the living engine in-process
 require("./planets");
+
+// keep Node alive forever (Railway safe)
 setInterval(()=>{}, 1<<30);
