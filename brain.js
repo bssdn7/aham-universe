@@ -1,6 +1,8 @@
 // ===================== STATE =====================
 let moon = 0, solar="day", season="summer";
 const beings = [];
+const planetDots = {}; // planetName -> array of dot meshes
+
 let lastPulse = 0;
 
 // ===================== SCENE =====================
@@ -57,6 +59,11 @@ function createBeing(){
   scene.add(m); beings.push(m);
 }
 createBeing(); createBeing(); createBeing();
+function makeDot(){
+  const g = new THREE.SphereGeometry(0.06, 8, 8);
+  const m = new THREE.MeshBasicMaterial({ color: 0x66ccff, transparent:true, opacity:0.85 });
+  return new THREE.Mesh(g, m);
+}
 
 // ===================== LOAD ORGANISMS =====================
 async function load(){
@@ -65,6 +72,13 @@ async function load(){
   const b = beings.pop();
   scene.remove(b);
   }
+// rebuild planet dot map
+const byPlanet = {};
+list.forEach(o=>{
+  byPlanet[o.planet] = byPlanet[o.planet] || [];
+  byPlanet[o.planet].push(o);
+});
+
   const R = 3.6;
 
   list.forEach((g,i)=>{
@@ -74,6 +88,37 @@ async function load(){
     const a=i*(Math.PI*2/list.length);
     b.position.set(Math.cos(a)*R,0,Math.sin(a)*R);
   });
+  
+  // clear old dots
+Object.keys(planetDots).forEach(p=>{
+  planetDots[p].forEach(d=>scene.remove(d));
+});
+for(const k in planetDots) delete planetDots[k];
+
+// add new dots per planet
+Object.keys(byPlanet).forEach((pName, pi)=>{
+  planetDots[pName] = [];
+  const count = byPlanet[pName].length;
+  const Rdot = 1.6; // ring radius around the planet
+
+  for(let i=0;i<count;i++){
+    const dot = makeDot();
+    const a = i * (Math.PI*2 / count);
+    dot.userData.planet = pName;
+
+    // find planet mesh for this planet index
+    const planetMesh = beings[pi];
+    if(!planetMesh) continue;
+
+    dot.position.set(
+      planetMesh.position.x + Math.cos(a)*Rdot,
+      planetMesh.position.y + Math.sin(a)*Rdot,
+      planetMesh.position.z
+    );
+    scene.add(dot);
+    planetDots[pName].push(dot);
+  }
+});
 
   const g0=list[0]||{};
   moon=g0.moon||moon;
@@ -138,6 +183,20 @@ function animate(){
     });
     lastPulse=Date.now();
   }
+  // slow orbit of population dots
+Object.keys(planetDots).forEach((pName, pi)=>{
+  const dots = planetDots[pName];
+  const planetMesh = beings[pi];
+  if(!planetMesh) return;
+
+  dots.forEach((d, i)=>{
+    const a = Date.now()*0.0002 + i*(Math.PI*2/dots.length);
+    const Rdot = 1.6;
+    d.position.x = planetMesh.position.x + Math.cos(a)*Rdot;
+    d.position.y = planetMesh.position.y + Math.sin(a)*Rdot;
+    d.position.z = planetMesh.position.z;
+  });
+});
 
   ren.render(scene,cam);
 }
