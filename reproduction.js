@@ -1,3 +1,4 @@
+const mutation = require("./mutation");
 const fs = require("fs");
 
 function mate(a,b){
@@ -18,7 +19,8 @@ function mate(a,b){
   baby.coreTraits.chaosSensitivity = Math.min(1,Math.max(0,baby.coreTraits.chaosSensitivity));
   baby.coreTraits.learningRate = Math.min(1,Math.max(0,baby.coreTraits.learningRate));
   baby.coreTraits.darkAffinity = Math.min(1,Math.max(0,baby.coreTraits.darkAffinity));
-  return baby;
+  return mutation.mutateGenome(baby);
 }
 
 module.exports = { mate };
+
