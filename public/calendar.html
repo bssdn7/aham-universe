@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AHAM Calendar</title>
+<style>
+body{margin:0;background:#000;color:#aaa;font-family:sans-serif}
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh}
+.month{font-size:52px;letter-spacing:6px}
+.season{opacity:.6}
+</style>
+</head>
+<body>
+<div class="center">
+  <div class="month" id="m"></div>
+  <div class="season" id="s"></div>
+</div>
+<script>
+function load(){
+ fetch("/genome").then(r=>r.json()).then(g=>{
+   document.getElementById("m").innerText = g.month || "—";
+   document.getElementById("s").innerText = g.season || "—";
+ });
+}
+setInterval(load,2000);
+load();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cosmic Fossils</title>
+<style>
+body{margin:0;background:#000;color:#aaa;font-family:sans-serif}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;padding:14px}
+.card{background:#080808;border:1px solid #222;border-radius:14px;padding:10px;box-shadow:0 0 18px rgba(255,215,120,.12)}
+.core{height:70px;border-radius:10px;margin:6px 0}
+.small{font-size:12px;opacity:.7}
+</style>
+</head>
+<body>
+<div class="grid" id="g"></div>
+<script>
+fetch("/cosmic-fossils").then(r=>r.json()).then(list=>{
+  const g=document.getElementById("g");
+  list.sort((a,b)=>new Date(b.ended)-new Date(a.ended));
+  list.forEach(f=>{
+    const d=document.createElement("div"); d.className="card";
+    const c=document.createElement("div"); c.className="core";
+    c.style.background=`linear-gradient(135deg,
+      hsl(${100 - f.traits.darkAffinity*60},80%,50%),
+      hsl(${f.traits.chaosSensitivity*60},90%,55%))`;
+    d.innerHTML=`<div class="small">${f.planet} • ${f.name} • Life #${f.life}</div>`;
+    d.appendChild(c);
+    d.innerHTML+=`<div class="small">Ended: ${new Date(f.ended).toLocaleDateString()}</div>`;
+    if(f.parents) d.innerHTML+=`<div class="small">Parents: ${f.parents.join(", ")}</div>`;
+    g.appendChild(d);
+  });
+});
+</script>
+</body>
+</html>

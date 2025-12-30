@@ -1,0 +1,33 @@
+{
+  "name": "AHAM",
+  "currentLife": 2,
+  "coreTraits": {
+    "chaosSensitivity": 0.47397289370862783,
+    "learningRate": 0.48928485629761165,
+    "darkAffinity": 0.4903617159893732
+  },
+  "golden": {
+    "active": false,
+    "until": null,
+    "events": []
+  },
+  "altar": false,
+  "moon": 0.35057781477049543,
+  "born": 1767090364272,
+  "reborn": false,
+  "fossilLives": [
+    {
+      "life": 1,
+      "ended": "2025-12-30T10:20:17.663Z",
+      "traits": {
+        "chaosSensitivity": 0,
+        "learningRate": 0,
+        "darkAffinity": 0
+      },
+      "golden": []
+    }
+  ],
+  "solar": "sunset",
+  "season": "deepwinter",
+  "month": "December"
+}

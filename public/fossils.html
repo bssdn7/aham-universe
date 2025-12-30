@@ -1,0 +1,34 @@
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>AHAM Fossil Wall</title>
+<style>
+body{margin:0;background:#000;color:#aaa;font-family:sans-serif}
+.wall{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;padding:16px}
+.fossil{background:#080808;border:1px solid #222;border-radius:14px;padding:12px;box-shadow:0 0 20px rgba(255,215,120,.12)}
+.core{height:80px;border-radius:12px;margin-bottom:8px}
+.small{font-size:12px;opacity:.7}
+</style>
+</head>
+<body>
+<div class="wall" id="wall"></div>
+<script>
+fetch("/fossils").then(r=>r.json()).then(list=>{
+  const w=document.getElementById("wall");
+  list.reverse().forEach(f=>{
+    const d=document.createElement("div"); d.className="fossil";
+    const c=document.createElement("div"); c.className="core";
+    c.style.background=`linear-gradient(135deg,
+      hsl(${100 - f.traits.darkAffinity*60},80%,50%),
+      hsl(${f.traits.chaosSensitivity*60},90%,55%))`;
+    d.innerHTML=`<div class="small">Life #${f.life}</div>`;
+    d.appendChild(c);
+    d.innerHTML+=`<div class="small">Ended: ${new Date(f.ended).toLocaleDateString()}</div>`;
+    d.innerHTML+=`<div class="small">Golden events: ${f.golden.length}</div>`;
+    w.appendChild(d);
+  });
+});
+</script>
+</body>
+</html>

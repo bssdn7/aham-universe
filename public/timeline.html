@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Cosmic Timeline</title>
+<style>html,body{margin:0;background:#000}</style>
+</head>
+<body>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script>
+fetch("/timeline").then(r=>r.json()).then(data=>{
+  const w=innerWidth,h=innerHeight;
+  const svg=d3.select("body").append("svg").attr("width",w).attr("height",h);
+  const sim=d3.forceSimulation(data.nodes)
+    .force("link",d3.forceLink(data.links).id(d=>d.id).distance(80))
+    .force("charge",d3.forceManyBody().strength(-120))
+    .force("center",d3.forceCenter(w/2,h/2));
+
+  const link=svg.append("g").selectAll("line").data(data.links)
+    .enter().append("line").attr("stroke","#333");
+
+  const node=svg.append("g").selectAll("circle").data(data.nodes)
+    .enter().append("circle")
+    .attr("r",6)
+    .attr("fill","#88ffcc")
+    .call(d3.drag()
+      .on("start",dragstart).on("drag",dragged).on("end",dragend));
+
+  const label=svg.append("g").selectAll("text").data(data.nodes)
+    .enter().append("text").attr("fill","#666").attr("font-size",10)
+    .text(d=>d.id);
+
+  sim.on("tick",()=>{
+    link.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y)
+        .attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);
+    node.attr("cx",d=>d.x).attr("cy",d=>d.y);
+    label.attr("x",d=>d.x+8).attr("y",d=>d.y+4);
+  });
+
+  function dragstart(e,d){ if(!e.active) sim.alphaTarget(.3).restart(); d.fx=d.x; d.fy=d.y;}
+  function dragged(e,d){ d.fx=e.x; d.fy=e.y;}
+  function dragend(e,d){ if(!e.active) sim.alphaTarget(0); d.fx=null; d.fy=null;}
+});
+</script>
+</body>
+</html>

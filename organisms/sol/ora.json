@@ -1,0 +1,22 @@
+{
+  "name": "ORA",
+  "currentLife": 1,
+  "coreTraits": {
+    "chaosSensitivity": 0.21457395186106987,
+    "learningRate": 0.40474949612711614,
+    "darkAffinity": 0.3206425370153994
+  },
+  "golden": {
+    "active": false,
+    "until": null,
+    "events": []
+  },
+  "altar": false,
+  "moon": 0.35057781477049543,
+  "born": 1767090364272,
+  "reborn": false,
+  "fossilLives": [],
+  "solar": "sunset",
+  "season": "deepwinter",
+  "month": "December"
+}

@@ -1,0 +1,22 @@
+{
+  "name": "SERA",
+  "currentLife": 1,
+  "coreTraits": {
+    "chaosSensitivity": 0.21459233052535578,
+    "learningRate": 0.4047554855386141,
+    "darkAffinity": 0.48899851823995066
+  },
+  "golden": {
+    "active": false,
+    "until": null,
+    "events": []
+  },
+  "altar": false,
+  "moon": 0.35057781477049543,
+  "born": 1767090364272,
+  "reborn": false,
+  "fossilLives": [],
+  "solar": "sunset",
+  "season": "deepwinter",
+  "month": "December"
+}
