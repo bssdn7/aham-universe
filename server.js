@@ -1,14 +1,14 @@
 const express = require("express");
 const fs = require("fs");
-
 const reproduce = require("./reproduction");
 
 const app = express();
-const PORT = Number(process.env.PORT || 3333);
+const PORT = process.env.PORT || 8080;   // Railway expects 8080
 
 app.use(express.static("public"));
 
-app.get("/health",(req,res)=>res.send("alive"));
+app.get("/", (req,res)=>res.send("AHAM ONLINE"));
+app.get("/health", (req,res)=>res.send("alive"));
 
 app.get("/organisms",(req,res)=>{
   const all=[];
@@ -49,8 +49,8 @@ function runPlanet(name){
   });
 }
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log("Server on", PORT);
+app.listen(PORT,"0.0.0.0",()=>{
+  console.log("SERVER ONLINE ON",PORT);
   console.log("PLANETS ENGINE ONLINE");
 
   setInterval(()=>{
@@ -59,4 +59,3 @@ app.listen(PORT, "0.0.0.0", () => {
     console.log("Planet heartbeat", new Date().toISOString());
   },60000);
 });
-
