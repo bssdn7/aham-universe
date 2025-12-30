@@ -1,4 +1,4 @@
-const fetch = require("node-fetch");
+const fetch = global.fetch;
 const express = require("express");
 const fs = require("fs");
 const war = require("./war");
@@ -86,4 +86,5 @@ setInterval(()=>{
 }, 30000);
 // start the living engine in-process
 require("./planets");
+
 
