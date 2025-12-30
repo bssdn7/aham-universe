@@ -4,7 +4,7 @@ const fs = require("fs");
 const reproduce = require("./reproduction");
 
 const app = express();
-const PORT = process.env.PORT || 3333;
+const PORT = Number(process.env.PORT || 3333);
 
 app.use(express.static("public"));
 
@@ -49,8 +49,8 @@ function runPlanet(name){
   });
 }
 
-app.listen(PORT,()=>{
-  console.log("Server on",PORT);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log("Server on", PORT);
   console.log("PLANETS ENGINE ONLINE");
 
   setInterval(()=>{
@@ -59,3 +59,4 @@ app.listen(PORT,()=>{
     console.log("Planet heartbeat", new Date().toISOString());
   },60000);
 });
+
