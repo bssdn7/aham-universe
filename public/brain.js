@@ -60,20 +60,16 @@ function makeDot(){
 async function load(){
   const list=await fetch("/organisms").then(r=>r.json());
 
-  // build planet grouping
   const byPlanet={};
   list.forEach(o=>{
     byPlanet[o.planet]=byPlanet[o.planet]||[];
     byPlanet[o.planet].push(o);
   });
 
-  // remove dead planet meshes
   while(beings.length>Object.keys(byPlanet).length){
-    const b=beings.pop();
-    scene.remove(b);
+    scene.remove(beings.pop());
   }
 
-  // planet mesh map
   const planetMeshByName={};
   const planets=Object.keys(byPlanet);
   const R=3.6;
@@ -92,13 +88,11 @@ async function load(){
     planetMeshByName[pName]=b;
   });
 
-  // clear old dots
   Object.keys(planetDots).forEach(p=>{
     planetDots[p].forEach(d=>scene.remove(d));
   });
   for(const k in planetDots) delete planetDots[k];
 
-  // add dots per planet
   Object.keys(byPlanet).forEach(pName=>{
     const dots=[];
     const count=byPlanet[pName].length;
@@ -141,19 +135,37 @@ function animate(){
   const seasonBoost={winter:-0.15,spring:0.1,summer:0.25,autumn:0.05}[season]||0;
 
   beings.forEach((b,i)=>{
-    const chaos=Math.random();
+    const pName=Object.keys(planetDots)[i];
+    const dots=planetDots[pName]||[];
+    const g=dots[0]?.userData||null;
+
+    if(!g) return;
+
+    const chaos=g.coreTraits.chaosSensitivity;
+    const learn=g.coreTraits.learningRate;
+    const dark=g.coreTraits.darkAffinity;
+
     b.rotation.x+=0.0006+chaos*0.0006;
     b.rotation.y+=0.0009+chaos*0.0008;
-    b.material.color.setHSL(0.55-chaos*0.3,0.8,0.45);
-    b.material.emissive.setRGB(chaos*0.8,(1-chaos)*0.4,0.4);
+
+    if(g.golden?.active){
+      b.material.color.setRGB(1,0.84,0.15);
+      b.material.emissive.setRGB(1,0.6,0.15);
+    }else{
+      b.material.color.setHSL(0.35-dark*0.25+chaos*0.15,0.8,0.45+learn*0.2);
+      b.material.emissive.setRGB(chaos*0.8,(1-chaos)*0.4,dark*0.6);
+    }
+
     b.material.emissive.multiplyScalar(lunarGlow*solarGlow);
     b.material.emissive.addScalar(seasonBoost);
   });
 
   Object.keys(planetDots).forEach(pName=>{
     const dots=planetDots[pName];
-    const planetMesh=beings[Object.keys(planetDots).indexOf(pName)];
+    const idx=Object.keys(planetDots).indexOf(pName);
+    const planetMesh=beings[idx];
     if(!planetMesh) return;
+
     dots.forEach((d,i)=>{
       const a=Date.now()*0.0002+i*(Math.PI*2/dots.length);
       const Rdot=1.6;
