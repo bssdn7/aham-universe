@@ -1,119 +1,126 @@
-const canvas = document.createElement("canvas");
-document.body.appendChild(canvas);
-const ctx = canvas.getContext("2d");
+const c=document.createElement("canvas");
+document.body.appendChild(c);
+const ctx=c.getContext("2d");
 
-function resize(){ canvas.width=innerWidth; canvas.height=innerHeight }
-resize(); addEventListener("resize",resize);
+function resize(){c.width=innerWidth;c.height=innerHeight}
+resize();addEventListener("resize",resize);
 
-// ---------- STARS ----------
-const stars=[...Array(1200)].map(()=>({x:Math.random(),y:Math.random(),r:Math.random()*1.2,a:Math.random()}));
+const TAU=Math.PI*2;
 
-// ---------- SUN ----------
-const sun={x:0,y:0,r:90,glow:260};
+// ================= STARFIELD =================
+const starsBG=[...Array(1400)].map(()=>({x:Math.random(),y:Math.random(),s:Math.random()}));
 
-// ---------- PLANETS ----------
-const COLORS=["#4FC3F7","#81C784","#BA68C8","#FFD54F","#E57373","#4DB6AC"];
-const planets=[];
+// ================= GALAXY =================
+const galaxy=[];
 
-for(let i=0;i<6;i++){
-  planets.push({
-    dist:180+i*95, r:14+Math.random()*16, angle:Math.random()*6.28,
-    speed:0.0005+Math.random()*0.0007, color:COLORS[i%COLORS.length],
-    life:Math.random(), vitality:0.4+Math.random()*0.4, stability:0.4+Math.random()*0.4, memory:0,
-    moons:[...Array(Math.random()*3|0)].map(()=>({a:Math.random()*6.28,d:18+Math.random()*14,r:3+Math.random()*2,s:0.01+Math.random()*0.02})),
-    cities:0, cityPhase:Math.random()*6.28
-  });
+function newStarSystem(x,y){
+  const sun={
+    x,y,r:60+Math.random()*30,glow:180,
+    systems:[]
+  };
+  const planets=[];
+  const count=3+Math.random()*4|0;
+  for(let i=0;i<count;i++){
+    planets.push({
+      dist:90+i*70,
+      r:12+Math.random()*18,
+      a:Math.random()*TAU,
+      s:0.0005+Math.random()*0.0005,
+      hue:Math.random()*360,
+      life:Math.random(),
+      vitality:0.4+Math.random()*0.4,
+      memory:0,
+      age:Math.random()*300,
+      dead:false,
+      cities:0,
+      moons:[...Array(Math.random()*3|0)].map(()=>({a:Math.random()*TAU,d:16+Math.random()*12,r:2+Math.random()*2,s:0.01+Math.random()*0.02}))
+    });
+  }
+  galaxy.push({sun,planets,organisms:[]});
 }
 
-// ---------- ORGANISMS ----------
-const organisms=[];
+newStarSystem(0,0);
 
-// ---------- LIFE ENGINE ----------
-function updateLife(){
+// ================= LIFE CORE =================
+function updateSystem(sys){
+  const {planets,organisms}=sys;
   planets.forEach((p,pi)=>{
-    if(p.life>0.15 && Math.random()<0.01+p.vitality*0.03) organisms.push({p:pi,a:Math.random()*6.28,age:0});
-    p.life=Math.max(0,Math.min(1,p.life+(Math.random()-0.5)*0.002+(Math.random()-0.5)*(1-p.stability)*0.02));
-    if(p.life>0.7)p.vitality=Math.min(1,p.vitality+0.0006);
-    if(p.life<0.2){p.memory=Math.min(1,p.memory+0.002);p.vitality=Math.max(0,p.vitality-0.0008);}
-    p.stability+=(0.5-p.stability)*0.0004;
-    const target=(p.life-0.45)*p.vitality*1.2; p.cities+=((target>0?target:0)-p.cities)*0.01;
+    p.age+=0.03;
+    if(p.age>600 && !p.dead){p.dead=true;p.life=0;p.cities=0;}
+    if(!p.dead && p.life>0.2 && Math.random()<0.02+p.vitality*0.02)
+      organisms.push({p:pi,a:Math.random()*TAU,age:0});
+    p.life=Math.max(0,Math.min(1,p.life+(Math.random()-0.5)*0.002));
+    p.cities+=(Math.max(0,(p.life-0.45)*p.vitality)-p.cities)*0.01;
   });
-
   for(let i=organisms.length-1;i>=0;i--){
     organisms[i].age++;
-    if(organisms[i].age>600){ planets[organisms[i].p].memory=Math.min(1,planets[organisms[i].p].memory+0.001); organisms.splice(i,1); }
+    if(organisms[i].age>600)organisms.splice(i,1);
   }
 }
 
-// ---------- DRAW HELPERS ----------
-function drawStars(){
-  stars.forEach(s=>{ctx.globalAlpha=s.a;ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(s.x*canvas.width,s.y*canvas.height,s.r,0,6.28);ctx.fill();});
-  ctx.globalAlpha=1;
-}
+// ================= DRAW =================
+function draw(){
+ requestAnimationFrame(draw);
+ ctx.fillStyle="#020214";
+ ctx.fillRect(0,0,c.width,c.height);
 
-function drawSun(){
-  const g=ctx.createRadialGradient(sun.x,sun.y,sun.r,sun.x,sun.y,sun.glow);
-  g.addColorStop(0,"#FFF9C4"); g.addColorStop(1,"rgba(255,249,196,0)");
-  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(sun.x,sun.y,sun.glow,0,6.28); ctx.fill();
-  ctx.fillStyle="#FFEB3B"; ctx.beginPath(); ctx.arc(sun.x,sun.y,sun.r,0,6.28); ctx.fill();
-}
+ // background stars
+ starsBG.forEach(s=>{
+   ctx.fillStyle="rgba(255,255,255,"+(0.1+0.4*s.s)+")";
+   ctx.fillRect(s.x*c.width,s.y*c.height,1+s.s*2,1+s.s*2);
+ });
 
-function drawClimateBands(x,y,r){
-  for(let i=0;i<3;i++){ ctx.strokeStyle="rgba(200,220,255,0.12)"; ctx.lineWidth=2; ctx.beginPath(); ctx.ellipse(x,y,r*0.95,r*(0.5+i*0.18),0,0,6.28); ctx.stroke(); }
-}
+ const cx=c.width/2,cy=c.height/2;
 
-function drawClouds(x,y,r,p){ p._c=(p._c||Math.random()*6.28)+0.002; ctx.strokeStyle="rgba(220,240,255,0.18)"; ctx.lineWidth=3; ctx.beginPath(); ctx.ellipse(x,y,r*1.05,r*0.55,p._c,0,6.28); ctx.stroke(); }
+ galaxy.forEach(sys=>{
+  updateSystem(sys);
+  const sun=sys.sun;
+  const sx=cx+sun.x,sy=cy+sun.y;
 
-function drawAurora(x,y,r,p){ ctx.strokeStyle=`rgba(120,255,200,${0.15+p.vitality*0.25})`; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(x,y-r*0.85,r*0.35,0,6.28); ctx.stroke(); ctx.beginPath(); ctx.arc(x,y+r*0.85,r*0.35,0,6.28); ctx.stroke(); }
+  // sun
+  const sg=ctx.createRadialGradient(sx,sy,10,sx,sy,sun.r*3);
+  sg.addColorStop(0,"rgba(255,240,160,0.8)");
+  sg.addColorStop(1,"transparent");
+  ctx.fillStyle=sg;ctx.beginPath();ctx.arc(sx,sy,sun.r*3,0,TAU);ctx.fill();
+  ctx.fillStyle="#FFD966";ctx.beginPath();ctx.arc(sx,sy,sun.r,0,TAU);ctx.fill();
 
-function drawMoons(p,x,y){
-  p.moons.forEach(m=>{ m.a+=m.s; const mx=x+Math.cos(m.a)*m.d,my=y+Math.sin(m.a)*m.d;
-    ctx.fillStyle="#bbb"; ctx.beginPath(); ctx.arc(mx,my,m.r,0,6.28); ctx.fill();
-    if(Math.hypot(x-mx,y-my)<p.r+m.r){ ctx.fillStyle="rgba(0,0,0,0.25)"; ctx.beginPath(); ctx.arc(x,y,p.r,0,6.28); ctx.fill(); }
+  sys.planets.forEach(p=>{
+    p.a+=p.s;
+    const px=sx+Math.cos(p.a)*p.dist,py=sy+Math.sin(p.a)*p.dist;
+
+    // planet body
+    const g=ctx.createRadialGradient(px-p.r/3,py-p.r/3,2,px,py,p.r);
+    g.addColorStop(0,"#fff");
+    g.addColorStop(1,`hsl(${p.hue},70%,45%)`);
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(px,py,p.r,0,TAU);ctx.fill();
+
+    // city glow
+    if(p.cities>0.05){
+      for(let i=0;i<p.cities*40;i++){
+        const a=Math.random()*TAU;
+        ctx.fillStyle="rgba(255,200,120,0.8)";
+        ctx.fillRect(px+Math.cos(a)*p.r*0.7,py+Math.sin(a)*p.r*0.7,2,2);
+      }
+    }
+
+    // moons
+    p.moons.forEach(m=>{
+      m.a+=m.s;
+      ctx.fillStyle="#aaa";
+      ctx.beginPath();
+      ctx.arc(px+Math.cos(m.a)*m.d,py+Math.sin(m.a)*m.d,m.r,0,TAU);
+      ctx.fill();
+    });
   });
-}
 
-function drawCityLights(x,y,r,p){
-  if(p.cities<0.08)return;
-  p.cityPhase+=0.01; const n=Math.floor(p.cities*80);
-  for(let i=0;i<n;i++){ const a=(i/n)*6.28+p.cityPhase; const rr=r*(0.55+Math.random()*0.35);
-    ctx.fillStyle="rgba(255,210,120,0.85)"; ctx.fillRect(x+Math.cos(a)*rr,y+Math.sin(a)*rr,2,2);
-  }
-}
-
-function drawPlanet(p){
-  const x=sun.x+Math.cos(p.angle)*p.dist, y=sun.y+Math.sin(p.angle)*p.dist;
-  const g=ctx.createRadialGradient(x-p.r/3,y-p.r/3,p.r/2,x,y,p.r);
-  g.addColorStop(0,"#fff"); g.addColorStop(1,p.color);
-  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,p.r,0,6.28); ctx.fill();
-
-  drawClimateBands(x,y,p.r);
-  drawClouds(x,y,p.r,p);
-  drawAurora(x,y,p.r,p);
-  drawMoons(p,x,y);
-  drawCityLights(x,y,p.r,p);
-
-  p.angle+=p.speed;
-}
-
-function drawOrganisms(){
-  organisms.forEach(o=>{
-    const p=planets[o.p];
-    const px=sun.x+Math.cos(p.angle)*p.dist, py=sun.y+Math.sin(p.angle)*p.dist;
-    o.a+=0.01;
-    ctx.fillStyle="#66CCFF";
-    ctx.fillRect(px+Math.cos(o.a)*p.r*0.95, py+Math.sin(o.a)*p.r*0.95, 2, 2);
+  // organisms
+  sys.organisms.forEach(o=>{
+    const p=sys.planets[o.p];
+    const px=sx+Math.cos(p.a)*p.dist,py=sy+Math.sin(p.a)*p.dist;
+    o.a+=0.02;
+    ctx.fillStyle="#66ccff";
+    ctx.fillRect(px+Math.cos(o.a)*p.r*0.9,py+Math.sin(o.a)*p.r*0.9,2,2);
   });
+ });
 }
-
-// ---------- LOOP ----------
-function loop(){
-  ctx.fillStyle="#020214"; ctx.fillRect(0,0,canvas.width,canvas.height);
-  sun.x=canvas.width/2; sun.y=canvas.height/2;
-  drawStars(); drawSun();
-  updateLife();
-  planets.forEach(drawPlanet);
-  drawOrganisms();
-  requestAnimationFrame(loop);
-}
-loop();
+draw();
