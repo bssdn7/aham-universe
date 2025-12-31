@@ -1,23 +1,26 @@
 <!doctype html>
 <html>
 <head>
+<meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>AHAM</title>
 <style>
-html,body{margin:0;background:#000;overflow:hidden}
+html,body{margin:0;overflow:hidden;background:#000}
+canvas{display:block}
 </style>
 </head>
 <body>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.155/build/three.min.js"></script>
+<!-- CORE -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
 
-<!-- Loaders & postprocessing AFTER THREE -->
-<script src="https://cdn.jsdelivr.net/npm/three@0.155/examples/js/loaders/RGBELoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.155/examples/js/postprocessing/EffectComposer.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.155/examples/js/postprocessing/RenderPass.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.155/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<!-- POST FX -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/loaders/RGBELoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/postprocessing/EffectComposer.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/postprocessing/RenderPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 
-<script src="sound.js"></script>
+<!-- YOUR UNIVERSE -->
 <script src="brain.js"></script>
 
 </body>
