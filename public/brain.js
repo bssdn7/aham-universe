@@ -47,10 +47,27 @@ async function syncPlanets(){
 
   data.forEach(p=>{
     if(!planetMeshes[p.id]){
+      const g = p.genome || {chaos:0.5,learn:0.5,dark:0.5,golden:false};
+
       const mesh = new THREE.Mesh(
         new THREE.SphereGeometry(0.5+Math.random()*0.4,32,32),
-        new THREE.MeshStandardMaterial({color:new THREE.Color().setHSL(p.hue,0.7,0.4)})
+        new THREE.MeshStandardMaterial({
+          color: g.golden
+            ? new THREE.Color(1,0.84,0.15)
+            : new THREE.Color().setHSL(
+                0.35 - g.dark*0.3 + g.chaos*0.2,
+                0.8,
+                0.45 + g.learn*0.2
+              ),
+          emissive: g.golden
+            ? new THREE.Color(1,0.6,0.15)
+            : new THREE.Color(g.chaos*0.8,(1-g.chaos)*0.4,g.dark*0.6),
+          emissiveIntensity: g.golden ? 2 : 0.6,
+          roughness:0.7,
+          metalness:0.05
+        })
       );
+
       scene.add(mesh);
       planetMeshes[p.id] = {mesh, angle:p.angle, orbit:p.orbit, speed:p.speed};
     }
