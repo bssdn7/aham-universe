@@ -1,164 +1,123 @@
-// ================= GALACTIC CORE =================
-const canvas = document.createElement("canvas");
+/* AHAM GOD CORE — Stable Universe Engine */
+
+const canvas=document.createElement("canvas");
 document.body.appendChild(canvas);
-const ctx = canvas.getContext("2d");
+const ctx=canvas.getContext("2d");
 resize();
-window.onresize = resize;
+window.onresize=resize;
 
-function resize(){
-  canvas.width = innerWidth;
-  canvas.height = innerHeight;
-}
+function resize(){ canvas.width=innerWidth; canvas.height=innerHeight; }
 
-const CX = () => canvas.width/2;
-const CY = () => canvas.height/2;
+const G=0.0006, CENTER_FORCE=0.00005;
 
-// ================= CONSTANTS =================
-const G = 0.00018;
-const CENTER_PULL = 0.00004;
-const EDGE_LIMIT = 1400;
-const MAX_PLANETS = 16;
+const stars=[], planets=[], blackholes=[], organisms=[];
+const STAR_COUNT=4, PLANET_COUNT=14, ORG_START=300;
+const BH_MAX=3, BH_EVAP=0.05, BH_MAX_MASS=12000;
 
-// ================= SUN =================
-const sun = { x:0, y:0, m:15000, r:80 };
+// UTIL
+const rand=(a,b)=>Math.random()*(b-a)+a;
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 
-// ================= ARRAYS =================
-const planets=[];
-const blackholes=[];
-const stars=[];
-
-// ================= STARFIELD =================
-for(let i=0;i<2000;i++){
-  stars.push({x:(Math.random()-0.5)*3000, y:(Math.random()-0.5)*3000});
-}
-
-// ================= HELPERS =================
-function rand(a,b){ return Math.random()*(b-a)+a; }
-function dist(a,b){ return Math.hypot(a.x-b.x,a.y-b.y); }
-
-// ================= PLANET CREATION =================
+// SPAWN
+function spawnStar(){ stars.push({x:rand(-200,200),y:rand(-200,200),m:9000,r:45}); }
 function spawnPlanet(){
-  const d = rand(200,900);
-  const a = rand(0,Math.PI*2);
-  const speed = Math.sqrt(G*sun.m/d);
-
-  planets.push({
-    x:Math.cos(a)*d,
-    y:Math.sin(a)*d,
-    vx:-Math.sin(a)*speed,
-    vy: Math.cos(a)*speed,
-    m: rand(30,120),
-    r: rand(12,28),
-    hue: rand(0,360),
-    life: [],
-    dead:false
-  });
+  planets.push({x:rand(-300,300),y:rand(-300,300),vx:0,vy:0,r:rand(8,16),m:rand(600,1600),hue:rand(0,360),dead:false});
+}
+function spawnOrg(){
+  const p=planets[Math.random()*planets.length|0];
+  organisms.push({p,x:p.x+rand(-p.r,p.r),y:p.y+rand(-p.r,p.r),energy:rand(50,100),hue:rand(0,360)});
+}
+function spawnBH(){
+  blackholes.push({x:rand(-400,400),y:rand(-400,400),m:6000,r:50});
 }
 
-// ================= ORGANISMS =================
-function spawnLife(p){
-  if(p.life.length>12) return;
-  p.life.push({a:rand(0,Math.PI*2),r:p.r+3});
-}
+// INIT
+for(let i=0;i<STAR_COUNT;i++)spawnStar();
+for(let i=0;i<PLANET_COUNT;i++)spawnPlanet();
+for(let i=0;i<ORG_START;i++)spawnOrg();
 
-// ================= BLACK HOLES =================
-function spawnBlackHole(){
-  blackholes.push({x:rand(-600,600),y:rand(-600,600),m:8000,r:70});
-}
-
-// ================= BOUNDARY =================
-function boundary(b){
-  const d = Math.hypot(b.x,b.y);
-  if(d>EDGE_LIMIT){
-    b.vx += (-b.x/d)*CENTER_PULL;
-    b.vy += (-b.y/d)*CENTER_PULL;
-  }
-}
-
-// ================= UPDATE =================
+// LOOP
 function step(){
-  // births
-  if(planets.length<MAX_PLANETS && Math.random()<0.01) spawnPlanet();
-  if(Math.random()<0.002) spawnBlackHole();
 
-  planets.forEach(p=>{
-    const dx = -p.x;
-    const dy = -p.y;
-    const d = Math.sqrt(dx*dx+dy*dy)+0.1;
-    const f = G*sun.m/d;
-    p.vx += (dx/d)*f;
-    p.vy += (dy/d)*f;
+// STARS LOCK CENTER
+stars.forEach(s=>{
+  s.x+=(-s.x)*CENTER_FORCE;
+  s.y+=(-s.y)*CENTER_FORCE;
+});
 
-    p.x += p.vx;
-    p.y += p.vy;
-    boundary(p);
-
-    if(Math.random()<0.02) spawnLife(p);
-  });
-
-  blackholes.forEach(b=>{
-    planets.forEach(p=>{
-      const d = dist(b,p);
-      if(d<b.r){ p.dead=true; }
-    });
-  });
-
-  for(let i=planets.length-1;i>=0;i--){
-    if(planets[i].dead) planets.splice(i,1);
-  }
-}
-
-// ================= DRAW =================
-function draw(){
-  ctx.fillStyle="#000015";
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-
+// PLANETS GRAVITY
+planets.forEach(p=>{
   stars.forEach(s=>{
-    ctx.fillStyle="#666";
-    ctx.fillRect(CX()+s.x,CY()+s.y,1,1);
+    const dx=s.x-p.x,dy=s.y-p.y,d=Math.hypot(dx,dy)+.5;
+    const f=(G*s.m*p.m)/(d*d);
+    p.vx+=dx/d*f; p.vy+=dy/d*f;
   });
-
-  // Sun
-  let g=ctx.createRadialGradient(CX(),CY(),0,CX(),CY(),200);
-  g.addColorStop(0,"#fff8b0"); g.addColorStop(1,"rgba(255,240,160,0)");
-  ctx.fillStyle=g;
-  ctx.beginPath(); ctx.arc(CX(),CY(),200,0,Math.PI*2); ctx.fill();
-
-  ctx.fillStyle="#ffeb77";
-  ctx.beginPath(); ctx.arc(CX(),CY(),sun.r,0,Math.PI*2); ctx.fill();
-
-  // Black holes
   blackholes.forEach(b=>{
-    ctx.fillStyle="#000";
-    ctx.beginPath(); ctx.arc(CX()+b.x,CY()+b.y,b.r,0,Math.PI*2); ctx.fill();
+    const dx=b.x-p.x,dy=b.y-p.y,d=Math.hypot(dx,dy)+.5;
+    const f=(b.m*0.0009)/(d*d);
+    p.vx+=dx/d*f; p.vy+=dy/d*f;
+    if(d<b.r){ p.dead=true; b.m+=p.m; }
   });
+});
 
-  // Planets
-  planets.forEach(p=>{
-    let glow=ctx.createRadialGradient(CX()+p.x,CY()+p.y,0,CX()+p.x,CY()+p.y,p.r*4);
-    glow.addColorStop(0,`hsla(${p.hue},90%,60%,0.7)`);
-    glow.addColorStop(1,"rgba(0,0,0,0)");
-    ctx.fillStyle=glow;
-    ctx.beginPath(); ctx.arc(CX()+p.x,CY()+p.y,p.r*4,0,Math.PI*2); ctx.fill();
+// MOVE PLANETS
+planets.forEach(p=>{
+  p.x+=p.vx; p.y+=p.vy;
+  // keep in galaxy
+  p.vx+=(-p.x)*0.000002; p.vy+=(-p.y)*0.000002;
+});
 
-    ctx.fillStyle=`hsl(${p.hue},70%,55%)`;
-    ctx.beginPath(); ctx.arc(CX()+p.x,CY()+p.y,p.r,0,Math.PI*2); ctx.fill();
+// BLACK HOLES
+blackholes.forEach((b,i)=>{
+  b.m-=BH_EVAP; if(b.m<3000) blackholes.splice(i,1);
+  if(b.m>BH_MAX_MASS) b.m=BH_MAX_MASS;
+});
+if(blackholes.length<BH_MAX && Math.random()<0.0007)spawnBH();
 
-    // life
-    p.life.forEach(l=>{
-      l.a+=0.02;
-      const lx = CX()+p.x+Math.cos(l.a)*l.r;
-      const ly = CY()+p.y+Math.sin(l.a)*l.r;
-      ctx.fillStyle="#66ccff";
-      ctx.beginPath(); ctx.arc(lx,ly,2,0,Math.PI*2); ctx.fill();
-    });
-  });
+// ORGANISMS
+organisms.forEach((o,i)=>{
+  if(o.p.dead){ organisms.splice(i,1); return; }
+  o.energy-=0.03;
+  if(o.energy<=0){ organisms.splice(i,1); return; }
+  if(Math.random()<0.01){ // migrate
+    o.p=planets[Math.random()*planets.length|0];
+  }
+  if(Math.random()<0.002){ // reproduce
+    organisms.push({...o,energy:60,hue:o.hue+rand(-10,10)});
+  }
+});
+
+// CLEAN DEAD
+for(let i=planets.length-1;i>=0;i--) if(planets[i].dead) planets.splice(i,1);
+
+// DRAW
+ctx.fillStyle="#02030f"; ctx.fillRect(0,0,canvas.width,canvas.height);
+ctx.save(); ctx.translate(canvas.width/2,canvas.height/2);
+
+stars.forEach(s=>{
+  const g=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,220);
+  g.addColorStop(0,"#fff8b0"); g.addColorStop(1,"transparent");
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(s.x,s.y,220,0,7); ctx.fill();
+  ctx.fillStyle="#ffd"; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,7); ctx.fill();
+});
+
+planets.forEach(p=>{
+  ctx.fillStyle=`hsl(${p.hue},70%,50%)`;
+  ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill();
+});
+
+blackholes.forEach(b=>{
+  ctx.strokeStyle="#000"; ctx.lineWidth=8;
+  ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,7); ctx.stroke();
+});
+
+organisms.forEach(o=>{
+  ctx.fillStyle=`hsl(${o.hue},100%,60%)`;
+  ctx.beginPath(); ctx.arc(o.p.x+rand(-o.p.r,o.p.r),o.p.y+rand(-o.p.r,o.p.r),2,0,7); ctx.fill();
+});
+
+ctx.restore();
+requestAnimationFrame(step);
 }
 
-// ================= LOOP =================
-function loop(){
-  step();
-  draw();
-  requestAnimationFrame(loop);
-}
-loop();
+step();
