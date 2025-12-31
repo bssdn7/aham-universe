@@ -28,18 +28,29 @@ function ensurePlanet(name){
   if(!fs.existsSync(dir)) fs.mkdirSync(dir);
 }
 
-function runPlanet(name){
-  const dir="organisms/"+name;
+function runPlanet(p){
+  const dir="organisms/"+p;
   const files=fs.readdirSync(dir).filter(f=>f.endsWith(".json"));
   const list=files.map(f=>JSON.parse(fs.readFileSync(dir+"/"+f)));
 
-  if(list.length>=2 && Math.random()<0.5){
+  // reproduction
+  if(list.length>=2 && Math.random()<0.45){
     const a=list[Math.floor(Math.random()*list.length)];
     const b=list[Math.floor(Math.random()*list.length)];
     const baby=reproduce.mate(a,b);
     fs.writeFileSync(dir+"/"+baby.name+".json",JSON.stringify(baby,null,2));
   }
 
+  // migration
+  if(list.length>1 && Math.random()<0.05){
+    const target=fs.readdirSync("organisms")[Math.floor(Math.random()*fs.readdirSync("organisms").length)];
+    if(target!==p){
+      const m=list[Math.floor(Math.random()*list.length)];
+      fs.renameSync(dir+"/"+m.name+".json","organisms/"+target+"/"+m.name+".json");
+    }
+  }
+
+  // death
   files.forEach((f,i)=>{
     const g=list[i];
     const age=(Date.now()-g.born)/86400000;
@@ -54,9 +65,34 @@ app.listen(PORT,"0.0.0.0",()=>{
   console.log("PLANETS ENGINE ONLINE");
 
   setInterval(()=>{
-    ensurePlanet("sol");
-    runPlanet("sol");
-    console.log("Planet heartbeat", new Date().toISOString());
-  },60000);
-});
+  if(!fs.existsSync("organisms")) fs.mkdirSync("organisms");
+
+  const planets = fs.readdirSync("organisms");
+  if(planets.length === 0){
+    fs.mkdirSync("organisms/sol");
+  }
+
+  fs.readdirSync("organisms").forEach(p=>{
+    runPlanet(p);
+  });
+
+  // planet birth
+  if(planets.length < 12 && Math.random() < 0.08){
+    const name="p"+Math.floor(Math.random()*100000);
+    fs.mkdirSync("organisms/"+name);
+    console.log("🌍 Planet formed:", name);
+  }
+
+  // planet death
+  fs.readdirSync("organisms").forEach(p=>{
+    const pop=fs.readdirSync("organisms/"+p).length;
+    if(pop===0 && Math.random()<0.05){
+      fs.rmdirSync("organisms/"+p);
+      console.log("☠️ Planet died:", p);
+    }
+  });
+
+  console.log("Galaxy heartbeat", new Date().toISOString());
+},60000);
+
 
