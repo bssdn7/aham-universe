@@ -1,83 +1,109 @@
-const c=document.createElement("canvas");
-document.body.appendChild(c);
-const ctx=c.getContext("2d");
+const canvas = document.createElement("canvas")
+document.body.appendChild(canvas)
+const ctx = canvas.getContext("2d")
 
-function resize(){c.width=innerWidth;c.height=innerHeight}
-resize(); addEventListener("resize",resize);
+function resize(){
+  canvas.width = innerWidth
+  canvas.height = innerHeight
+}
+resize()
+addEventListener("resize",resize)
 
-const stars=[...Array(1500)].map(()=>({
- x:Math.random()*innerWidth,y:Math.random()*innerHeight,s:Math.random()*1.2
-}));
+const TAU = Math.PI*2
 
-const sun={r:70,pulse:0};
+// ---------- Stars ----------
+const stars = Array.from({length:800},()=>({
+  x:Math.random(),
+  y:Math.random(),
+  z:Math.random()
+}))
 
-const planets=[...Array(7)].map((_,i)=>({
- a:140+i*85,b:90+i*55,
- ang:Math.random()*6.28,spd:0.0002+Math.random()*0.0003,
- r:16+Math.random()*18,rot:Math.random()*6.28,
- hue:Math.random()*360,life:Math.random()*1,
- moons:[...Array(Math.random()*3|0)].map(()=>({a:20+Math.random()*18,ang:Math.random()*6.28}))
-}));
+// ---------- Sun ----------
+const sun = {
+  x:0,y:0,
+  r:90,
+  glow:0
+}
 
-function drawPlanet(p,x,y){
- // atmosphere
- const atm=ctx.createRadialGradient(x,y,p.r*0.8,x,y,p.r*2.5);
- atm.addColorStop(0,`hsla(${p.hue},70%,65%,0.6)`);
- atm.addColorStop(1,"transparent");
- ctx.fillStyle=atm;
- ctx.beginPath();ctx.arc(x,y,p.r*2.2,0,6.28);ctx.fill();
+// ---------- Planet Factory ----------
+function newPlanet(dist){
+  return{
+    a:Math.random()*TAU,
+    d:dist,
+    r:20+Math.random()*35,
+    hue:Math.random()*360,
+    life:Math.random(),
+    clouds:Math.random(),
+    speed:0.0002+Math.random()*0.0005
+  }
+}
 
- // body
- const body=ctx.createRadialGradient(x-p.r/3,y-p.r/3,2,x,y,p.r);
- body.addColorStop(0,`hsl(${p.hue},70%,70%)`);
- body.addColorStop(1,`hsl(${p.hue},70%,35%)`);
- ctx.fillStyle=body;
- ctx.beginPath();ctx.arc(x,y,p.r,0,6.28);ctx.fill();
+const planets=[newPlanet(160),newPlanet(230),newPlanet(310),newPlanet(390)]
 
- // organisms
- for(let i=0;i<p.life*40;i++){
-  const a=Math.random()*6.28;
-  ctx.fillStyle=`hsla(${p.hue+80},90%,80%,0.7)`;
-  ctx.fillRect(x+Math.cos(a)*p.r,y+Math.sin(a)*p.r,2,2);
- }
+// ---------- Draw ----------
+function drawStarfield(){
+  ctx.fillStyle="#050510"
+  ctx.fillRect(0,0,canvas.width,canvas.height)
+  for(let s of stars){
+    const x=s.x*canvas.width
+    const y=s.y*canvas.height
+    ctx.fillStyle=`rgba(255,255,255,${0.1+0.4*s.z})`
+    ctx.fillRect(x,y,1+s.z*2,1+s.z*2)
+  }
+}
 
- // moons
- p.moons.forEach(m=>{
-  m.ang+=0.01;
-  const mx=x+Math.cos(m.ang)*m.a;
-  const my=y+Math.sin(m.ang)*m.a;
-  ctx.fillStyle="#aaa";
-  ctx.beginPath();ctx.arc(mx,my,3,0,6.28);ctx.fill();
- });
+function shadeSphere(x,y,r,hue,light){
+  const g=ctx.createRadialGradient(x-r*0.3,y-r*0.3,r*0.2,x,y,r)
+  g.addColorStop(0,`hsl(${hue},70%,${60*light}%)`)
+  g.addColorStop(1,`hsl(${hue},60%,${15*light}%)`)
+  ctx.fillStyle=g
+  ctx.beginPath()
+  ctx.arc(x,y,r,0,TAU)
+  ctx.fill()
 }
 
 function draw(){
- requestAnimationFrame(draw);
- ctx.fillStyle="#02030f";
- ctx.fillRect(0,0,c.width,c.height);
+  requestAnimationFrame(draw)
+  drawStarfield()
 
- // stars
- stars.forEach(s=>{ctx.fillStyle="#888";ctx.fillRect(s.x,s.y,s.s,s.s)});
+  const cx=canvas.width/2
+  const cy=canvas.height/2
 
- const cx=c.width/2,cy=c.height/2;
+  // Sun glow
+  sun.glow += 0.02
+  const sg=ctx.createRadialGradient(cx,cy,0,cx,cy,sun.r*3)
+  sg.addColorStop(0,"rgba(255,240,150,0.8)")
+  sg.addColorStop(1,"rgba(255,240,150,0)")
+  ctx.fillStyle=sg
+  ctx.beginPath()
+  ctx.arc(cx,cy,sun.r*3,0,TAU)
+  ctx.fill()
 
- // sun
- sun.pulse+=0.01;
- const glow=ctx.createRadialGradient(cx,cy,20,cx,cy,sun.r*3+Math.sin(sun.pulse)*10);
- glow.addColorStop(0,"#fff6a0");
- glow.addColorStop(1,"transparent");
- ctx.fillStyle=glow;ctx.beginPath();ctx.arc(cx,cy,sun.r*3,0,6.28);ctx.fill();
- ctx.fillStyle="#ffe066";ctx.beginPath();ctx.arc(cx,cy,sun.r,0,6.28);ctx.fill();
+  // Sun
+  ctx.fillStyle="#ffd866"
+  ctx.beginPath()
+  ctx.arc(cx,cy,sun.r,0,TAU)
+  ctx.fill()
 
- // planets
- planets.forEach(p=>{
-  p.ang+=p.spd;
-  p.rot+=0.02;
-  p.life=Math.max(0,Math.min(1,p.life+(Math.random()-.5)*0.001));
-  if(Math.random()<0.0003)p.hue=(p.hue+40)%360;
-  const x=cx+Math.cos(p.ang)*p.a;
-  const y=cy+Math.sin(p.ang)*p.b;
-  drawPlanet(p,x,y);
- });
+  for(let p of planets){
+    p.a+=p.speed
+    p.life += (Math.random()-0.5)*0.002
+    p.hue += (p.life-0.5)*0.3
+
+    const px = cx + Math.cos(p.a)*p.d
+    const py = cy + Math.sin(p.a)*p.d
+
+    const light = Math.max(0.2,(1-(p.d/450)))
+
+    shadeSphere(px,py,p.r,p.hue,light)
+
+    // Biosphere shimmer
+    for(let i=0;i<p.life*60;i++){
+      const a=Math.random()*TAU
+      const rr=p.r*(0.5+Math.random()*0.5)
+      ctx.fillStyle="rgba(120,220,255,0.8)"
+      ctx.fillRect(px+Math.cos(a)*rr,py+Math.sin(a)*rr,2,2)
+    }
+  }
 }
-draw();
+draw()
