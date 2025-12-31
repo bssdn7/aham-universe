@@ -20,16 +20,15 @@ function init(){
   renderer.setSize(innerWidth, innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 2.8;
+  renderer.toneMappingExposure = 2.6;
   renderer.physicallyCorrectLights = true;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
 
-  // Starfield
+  // Stars
   const starGeo = new THREE.BufferGeometry();
   const s=[];
-  for(let i=0;i<6000;i++){
+  for(let i=0;i<7000;i++){
     s.push((Math.random()-0.5)*12000,(Math.random()-0.5)*12000,(Math.random()-0.5)*12000);
   }
   starGeo.setAttribute("position", new THREE.Float32BufferAttribute(s,3));
@@ -37,8 +36,8 @@ function init(){
 
   // Sun
   const sunMat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(0xfff2aa).convertSRGBToLinear(),
-    emissive: new THREE.Color(0xfff2aa).multiplyScalar(8),
+    color: new THREE.Color(0xfff2aa),
+    emissive: new THREE.Color(0xfff2aa).multiplyScalar(12),
     roughness: 1,
     metalness: 0
   });
@@ -46,10 +45,9 @@ function init(){
   sun.castShadow = true;
   scene.add(sun);
 
-  // Lighting
-  scene.add(new THREE.AmbientLight(0x111122,0.15));
-  const sunlight = new THREE.PointLight(0xfff2dd,18000,50000,2);
-  sunlight.position.set(0,0,0);
+  // Physical sunlight
+  scene.add(new THREE.AmbientLight(0x0c0c1a, 0.35));
+  const sunlight = new THREE.PointLight(0xfff2dd, 24000, 80000, 2);
   sunlight.castShadow = true;
   scene.add(sunlight);
 
@@ -72,11 +70,10 @@ function init(){
 
 function makePlanet(dist,size,color,speed){
   const mat = new THREE.MeshStandardMaterial({
-    color: new THREE.Color(color).convertSRGBToLinear(),
-    roughness: 0.85,
+    color: new THREE.Color(color),
+    roughness: 0.9,
     metalness: 0,
-    emissive: new THREE.Color(0x000000),
-    envMapIntensity: 0.35
+    emissive: new THREE.Color(color).multiplyScalar(0.22)   // ← real albedo compensation
   });
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(size,48,48), mat);
   mesh.userData = {dist, angle:Math.random()*Math.PI*2, speed};
