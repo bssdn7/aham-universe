@@ -20,17 +20,24 @@ const id = ()=> "p"+Date.now()+Math.floor(Math.random()*9999);
 function spawnPlanet(){
   if(planets.length>9) return;
 
+  const chaos = Math.random();
+  const learn = Math.random();
+  const dark  = Math.random();
+
   const p = {
     id:id(),
     orbit:rnd(4,10),
     angle:Math.random()*Math.PI*2,
     speed:rnd(0.00005,0.00025),
-    hue:Math.random(),
-    life:1,
+    genome:{
+      chaos, learn, dark,
+      golden: Math.random()<0.08
+    },
     born:Date.now()
   };
+
   planets.push(p);
-  console.log("🌍 Planet formed:",p.id);
+  console.log("🌍 Planet formed:",p.id,p.genome);
 }
 
 /* ===================== ORGANISMS ===================== */
