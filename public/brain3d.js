@@ -118,7 +118,7 @@ function addEarthLife(planet){
   const cloud = new THREE.Mesh(
     new THREE.SphereGeometry(21,64,64),
     new THREE.MeshStandardMaterial({
-      map: loader.load("/textures/earth_clouds.jpg"),
+      map: loader.load("/textures/earth_clouds.JPG"),
       transparent:true,
       opacity:0.85,
       depthWrite:false
@@ -127,7 +127,7 @@ function addEarthLife(planet){
 
   // NIGHT LIGHTS (self illuminated layer ABOVE clouds)
   const nightMat = new THREE.MeshBasicMaterial({
-    map: loader.load("/textures/earth_night.jpg"),
+    map: loader.load("/textures/earth_night.JPG"),
     transparent:true,
     blending:THREE.AdditiveBlending
   });
