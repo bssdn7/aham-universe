@@ -103,8 +103,12 @@ function drawPlanet(p){
 function drawOrganisms(){
   organisms.forEach(o=>{
     const p = planets[o.p];
-    const x = sun.x + Math.cos(p.angle+o.a)*p.dist;
-    const y = sun.y + Math.sin(p.angle+o.a)*p.dist;
+    const ox = Math.cos(p.angle+o.a)*p.dist;
+    const oy = Math.sin(p.angle+o.a)*p.dist;
+
+    const x = sun.x + ox + Math.cos(o.a)*p.r*0.9;
+    const y = sun.y + oy + Math.sin(o.a)*p.r*0.9;
+
     ctx.fillStyle="#66CCFF";
     ctx.fillRect(x,y,2,2);
   });
