@@ -35,7 +35,7 @@ const planetMeshes = {};
 const organismMeshes = {};
 let latestOrganisms = [];
 
-/* SYNC PLANETS */
+/* PLANET SYNC */
 async function syncPlanets(){
   const data = await fetch("/planets").then(r=>r.json());
 
@@ -63,20 +63,19 @@ async function syncPlanets(){
       );
 
       scene.add(mesh);
-      planetMeshes[p.id] = {mesh};
+      planetMeshes[p.id] = {
+        mesh,
+        orbit: p.orbit,
+        speed: p.speed,
+        angle: Math.random()*Math.PI*2 // local clock
+      };
     }
-
-    // LIVE orbital sync
-    planetMeshes[p.id].angle = p.angle;
-    planetMeshes[p.id].orbit = p.orbit;
-    planetMeshes[p.id].speed = p.speed;
   });
 }
 
-/* SYNC LIFE */
+/* LIFE SYNC */
 async function syncLife(){
   latestOrganisms = await fetch("/organisms").then(r=>r.json());
-
   latestOrganisms.forEach(o=>{
     if(!organismMeshes[o.id]){
       const m = new THREE.Mesh(
@@ -109,6 +108,7 @@ function animate(){
     const p = planetMeshes[o.planet];
     const m = organismMeshes[o.id];
     if(!p || !m) return;
+
     const a = Date.now()*0.001 + (parseInt(o.id.slice(-3))||0);
     m.position.set(
       p.mesh.position.x + Math.cos(a)*0.8,
