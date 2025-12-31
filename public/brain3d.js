@@ -76,6 +76,7 @@ function makeTexturedWorld(dist,size,map,normal=null){
   mesh.userData={d:dist,a:Math.random()*Math.PI*2,s:0.002+Math.random()*0.002};
   planets.push(mesh);
   scene.add(mesh);
+  return mesh;
 }
 
 function spawnMercury(d){ makeTexturedWorld(d,12,"/textures/mercury.jpg"); }
@@ -83,9 +84,31 @@ function spawnVenus(d){ makeTexturedWorld(d,18,"/textures/venus.jpg"); }
 function spawnEarth(d){ makeTexturedWorld(d,20,"/textures/earth.jpg","/textures/earth_normal.jpg"); }
 function spawnMars(d){ makeTexturedWorld(d,16,"/textures/mars.jpg"); }
 function spawnJupiter(d){ makeTexturedWorld(d,36,"/textures/jupiter.jpg"); }
-function spawnSaturn(d){ makeTexturedWorld(d,30,"/textures/saturn.jpg"); }
+function spawnSaturn(d){
+  const saturn = makeTexturedWorld(d,30,"/textures/saturn.jpg");
+  addSaturnRings(saturn);
+}
+
 function spawnUranus(d){ makeTexturedWorld(d,26,"/textures/uranus.jpg"); }
 function spawnNeptune(d){ makeTexturedWorld(d,24,"/textures/neptune.jpg"); }
+
+function addSaturnRings(planet){
+  const tex = loader.load("/textures/saturn_ring.png");
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(40, 70, 128),
+    new THREE.MeshStandardMaterial({
+      map: tex,
+      transparent:true,
+      side:THREE.DoubleSide,
+      roughness:0.8,
+      metalness:0,
+      emissive:new THREE.Color(0xffffff).multiplyScalar(0.04)
+    })
+  );
+  ring.rotation.x = Math.PI/2.2;
+  planet.add(ring);
+}
+
 
 // -------- Animate --------
 function animate(){
