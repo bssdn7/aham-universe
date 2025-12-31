@@ -19,7 +19,7 @@ function init(){
   renderer.setSize(innerWidth,innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.9;
+  renderer.toneMappingExposure = 2.8;
   renderer.physicallyCorrectLights = true;
   document.body.appendChild(renderer.domElement);
 
@@ -38,7 +38,10 @@ function init(){
     })
   );
   scene.add(sun);
-  scene.add(new THREE.PointLight(0xfff2dd, 28000, 90000, 2));
+  const sunLight = new THREE.PointLight(0xfff2dd, 95000, 200000, 2);
+  sunLight.position.set(0,0,0);
+  scene.add(sunLight);
+
 
   scene.add(new THREE.AmbientLight(0x080814,0.3));
 
