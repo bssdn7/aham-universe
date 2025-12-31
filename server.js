@@ -52,10 +52,15 @@ app.get("/timeline",(req,res)=>{
 
 app.get("/cosmos",(req,res)=>{
   const out=[];
-  planets().forEach(pl=>{
-    const pop = fs.readdirSync(path.join(ROOT,pl)).length;
-    out.push({planet:pl, population:pop});
+  if(!fs.existsSync(ROOT)) return res.json(out);
+
+  fs.readdirSync(ROOT).forEach(p=>{
+    const dir = path.join(ROOT,p);
+    if(!fs.statSync(dir).isDirectory()) return;
+    const pop = fs.readdirSync(dir).filter(f=>f.endsWith(".json")).length;
+    out.push({planet:p, population:pop});
   });
+
   res.json(out);
 });
 // ========== HEARTBEAT ==========
