@@ -127,7 +127,7 @@ function addEarthLife(planet){
 
   // NIGHT LIGHTS (self illuminated layer ABOVE clouds)
   const nightMat = new THREE.MeshBasicMaterial({
-    map: loader.load("/textures/earth_night.JPG"),
+    map: loader.load("/textures/IMG_7814.jpeg"),
     transparent:true,
     blending:THREE.AdditiveBlending
   });
