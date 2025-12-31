@@ -1,5 +1,3 @@
-/* ===================== SCENE ===================== */
-
 const scene = new THREE.Scene();
 
 const cam = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
@@ -7,12 +5,11 @@ cam.position.set(0,8,18);
 cam.lookAt(0,0,0);
 
 const ren = new THREE.WebGLRenderer({antialias:true});
-ren.setSize(innerWidth, innerHeight);
+ren.setSize(innerWidth,innerHeight);
 ren.setClearColor(0x000010,1);
 document.body.appendChild(ren.domElement);
 
-/* ===================== SUN ===================== */
-
+/* SUN */
 const sun = new THREE.Mesh(
   new THREE.SphereGeometry(1.4,64,64),
   new THREE.MeshStandardMaterial({
@@ -24,8 +21,7 @@ const sun = new THREE.Mesh(
 scene.add(sun);
 scene.add(new THREE.PointLight(0xffddaa,4,100));
 
-/* ===================== STARS ===================== */
-
+/* STARS */
 const starGeo=new THREE.BufferGeometry();
 const starPos=[];
 for(let i=0;i<5000;i++){
@@ -34,14 +30,12 @@ for(let i=0;i<5000;i++){
 starGeo.setAttribute("position",new THREE.Float32BufferAttribute(starPos,3));
 scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({size:0.6,color:0xffffff})));
 
-/* ===================== STATE ===================== */
-
+/* STATE */
 const planetMeshes = {};
 const organismMeshes = {};
 let latestOrganisms = [];
 
-/* ===================== SYNC ===================== */
-
+/* SYNC PLANETS */
 async function syncPlanets(){
   const data = await fetch("/planets").then(r=>r.json());
 
@@ -69,11 +63,17 @@ async function syncPlanets(){
       );
 
       scene.add(mesh);
-      planetMeshes[p.id] = {mesh, angle:p.angle, orbit:p.orbit, speed:p.speed};
+      planetMeshes[p.id] = {mesh};
     }
+
+    // LIVE orbital sync
+    planetMeshes[p.id].angle = p.angle;
+    planetMeshes[p.id].orbit = p.orbit;
+    planetMeshes[p.id].speed = p.speed;
   });
 }
 
+/* SYNC LIFE */
 async function syncLife(){
   latestOrganisms = await fetch("/organisms").then(r=>r.json());
 
@@ -92,21 +92,23 @@ async function syncLife(){
 setInterval(syncPlanets,2000); syncPlanets();
 setInterval(syncLife,1500); syncLife();
 
-/* ===================== ANIMATE ===================== */
-
+/* ANIMATE */
 function animate(){
   requestAnimationFrame(animate);
 
   Object.values(planetMeshes).forEach(p=>{
     p.angle += p.speed;
-    p.mesh.position.set(Math.cos(p.angle)*p.orbit,0,Math.sin(p.angle)*p.orbit);
+    p.mesh.position.set(
+      Math.cos(p.angle)*p.orbit,
+      0,
+      Math.sin(p.angle)*p.orbit
+    );
   });
 
   latestOrganisms.forEach(o=>{
     const p = planetMeshes[o.planet];
     const m = organismMeshes[o.id];
     if(!p || !m) return;
-
     const a = Date.now()*0.001 + (parseInt(o.id.slice(-3))||0);
     m.position.set(
       p.mesh.position.x + Math.cos(a)*0.8,
@@ -119,8 +121,7 @@ function animate(){
 }
 animate();
 
-/* ===================== RESIZE ===================== */
-
+/* RESIZE */
 addEventListener("resize",()=>{
   cam.aspect=innerWidth/innerHeight;
   cam.updateProjectionMatrix();
