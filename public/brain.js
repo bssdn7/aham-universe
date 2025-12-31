@@ -1,25 +1,38 @@
 const scene = new THREE.Scene();
 const cam = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
-cam.position.set(0,0,16);
+cam.position.set(0,0,18);
 
 const ren = new THREE.WebGLRenderer({antialias:true});
 ren.setSize(innerWidth, innerHeight);
 ren.setClearColor(0x000010,1);
 document.body.appendChild(ren.domElement);
 
-scene.add(new THREE.AmbientLight(0x666666));
-const sun = new THREE.PointLight(0xffffff,2,100);
-sun.position.set(6,6,6);
-scene.add(sun);
+// LIGHTING
+scene.add(new THREE.AmbientLight(0x444444));
 
+const sunLight = new THREE.PointLight(0xffddaa,3,200);
+scene.add(sunLight);
+
+// CENTRAL SUN
+const sunCore = new THREE.Mesh(
+  new THREE.SphereGeometry(1.4,32,32),
+  new THREE.MeshBasicMaterial({color:0xffcc66})
+);
+scene.add(sunCore);
+
+// REGISTRIES
 const planetMeshes = {};
 const organismMeshes = {};
 
-// create planet
+// PLANET CREATION
 function makePlanet(name){
   const m = new THREE.Mesh(
     new THREE.IcosahedronGeometry(1,4),
-    new THREE.MeshStandardMaterial({roughness:0.4,metalness:0.2})
+    new THREE.MeshStandardMaterial({
+      roughness:0.4,
+      metalness:0.25,
+      emissiveIntensity:1.2
+    })
   );
   m.userData = {
     orbitRadius: 4 + Math.random()*6,
@@ -32,14 +45,15 @@ function makePlanet(name){
   planetMeshes[name] = m;
 }
 
-// create organism
-function makeOrganismMesh(id){
+// ORGANISM CREATION
+function makeOrganismMesh(o){
   const m = new THREE.Mesh(
     new THREE.SphereGeometry(0.12,8,8),
     new THREE.MeshBasicMaterial({color:0x66ccff})
   );
+  m.userData = { planet:o.planet, angle:Math.random()*Math.PI*2, genome:o };
   scene.add(m);
-  organismMeshes[id] = m;
+  organismMeshes[o.id] = m;
 }
 
 async function load(){
@@ -66,12 +80,7 @@ async function load(){
   for(const k in organismMeshes) delete organismMeshes[k];
 
   Object.keys(byPlanet).forEach(p=>{
-    const planet = planetMeshes[p];
-    byPlanet[p].forEach((o,i)=>{
-      makeOrganismMesh(o.id);
-      const angle = i*(Math.PI*2/byPlanet[p].length);
-      organismMeshes[o.id].userData = {planet:p, angle};
-    });
+    byPlanet[p].forEach(o=>makeOrganismMesh(o));
   });
 }
 setInterval(load,2000); load();
@@ -80,19 +89,20 @@ function animate(){
   requestAnimationFrame(animate);
   const t = Date.now();
 
+  // PLANET ORBITS + PULSE
   Object.values(planetMeshes).forEach(m=>{
     const a = m.userData.orbitPhase + t*m.userData.orbitSpeed;
-    m.position.x = Math.cos(a)*m.userData.orbitRadius;
-    m.position.z = Math.sin(a)*m.userData.orbitRadius;
-
+    const r = m.userData.orbitRadius;
+    m.position.set(Math.cos(a)*r,0,Math.sin(a)*r);
     m.userData.phase += 0.01 * m.userData.heartbeat;
     m.scale.setScalar(1 + Math.sin(m.userData.phase)*0.08);
   });
 
+  // ORGANISM ORBITS
   Object.values(organismMeshes).forEach(m=>{
     const p = planetMeshes[m.userData.planet];
     if(!p) return;
-    const a = m.userData.angle + Date.now()*0.0006;
+    const a = m.userData.angle + t*0.0006;
     const r = 1.8;
     m.position.set(
       p.position.x + Math.cos(a)*r,
@@ -101,7 +111,29 @@ function animate(){
     );
   });
 
-  // communication rings
+  // PLANET COLOR FROM GENOMES
+  const groups = {};
+  Object.values(organismMeshes).forEach(o=>{
+    groups[o.userData.planet] = groups[o.userData.planet] || [];
+    groups[o.userData.planet].push(o.userData.genome);
+  });
+
+  Object.keys(groups).forEach(p=>{
+    const g = groups[p];
+    const planet = planetMeshes[p];
+    if(!planet) return;
+    let c=0,l=0,d=0;
+    g.forEach(x=>{
+      c+=x.coreTraits.chaosSensitivity;
+      l+=x.coreTraits.learningRate;
+      d+=x.coreTraits.darkAffinity;
+    });
+    c/=g.length; l/=g.length; d/=g.length;
+    planet.material.color.setHSL(0.35-d*0.25+c*0.15,0.8,0.45+l*0.25);
+    planet.material.emissive.setRGB(c*0.9,(1-c)*0.5,d*0.8);
+  });
+
+  // COMMUNICATION WAVES
   const keys = Object.keys(planetMeshes);
   if(keys.length>1 && Math.random()<0.02){
     const a = planetMeshes[keys[Math.floor(Math.random()*keys.length)]];
