@@ -1,6 +1,5 @@
 const canvas = document.createElement("canvas");
 document.body.appendChild(canvas);
-
 const ctx = canvas.getContext("2d");
 
 function resize(){
@@ -10,7 +9,7 @@ function resize(){
 resize();
 addEventListener("resize", resize);
 
-// ---------------- STARFIELD ----------------
+// ---------- STARS ----------
 const stars = Array.from({length: 1200}, () => ({
   x: Math.random(),
   y: Math.random(),
@@ -18,17 +17,12 @@ const stars = Array.from({length: 1200}, () => ({
   a: Math.random()
 }));
 
-// ---------------- SUN ----------------
-const sun = {
-  x: 0,
-  y: 0,
-  r: 90,
-  glow: 260
-};
+// ---------- SUN ----------
+const sun = { x:0, y:0, r:90, glow:260 };
 
-// ---------------- PLANETS ----------------
-const planets = [];
+// ---------- PLANETS ----------
 const COLORS = ["#4FC3F7","#81C784","#BA68C8","#FFD54F","#E57373","#4DB6AC"];
+const planets = [];
 
 for(let i=0;i<6;i++){
   planets.push({
@@ -41,7 +35,30 @@ for(let i=0;i<6;i++){
   });
 }
 
-// ---------------- DRAW ----------------
+// ---------- ORGANISMS ----------
+const organisms = [];
+
+// ---------- LIFE ENGINE ----------
+function updateLife(){
+  planets.forEach((p,pi)=>{
+    if(p.life>0.15 && Math.random()<0.02){
+      organisms.push({p:pi,a:Math.random()*6.28,age:0});
+    }
+    p.life = Math.max(0, Math.min(1, p.life + (Math.random()-0.5)*0.002));
+  });
+
+  for(let i=organisms.length-1;i>=0;i--){
+    organisms[i].age++;
+    if(organisms[i].age>600) organisms.splice(i,1);
+  }
+
+  if(Math.random()<0.01 && organisms.length>10){
+    organisms[Math.random()*organisms.length|0].p =
+      Math.random()*planets.length|0;
+  }
+}
+
+// ---------- DRAW ----------
 function drawStars(){
   for(const s of stars){
     ctx.globalAlpha = s.a;
@@ -82,28 +99,10 @@ function drawPlanet(p){
 
   p.angle += p.speed;
 }
-function updateLife(){
-  planets.forEach((p,pi)=>{
-    if(p.life>0.15 && Math.random()<0.02){
-      organisms.push({p:pi,a:Math.random()*6.28,age:0});
-    }
-    p.life = Math.max(0, Math.min(1, p.life + (Math.random()-0.5)*0.002));
-  });
-
-  for(let i=organisms.length-1;i>=0;i--){
-    organisms[i].age++;
-    if(organisms[i].age>600) organisms.splice(i,1);
-  }
-
-  if(Math.random()<0.01 && organisms.length>10){
-    organisms[Math.random()*organisms.length|0].p =
-      Math.random()*planets.length|0;
-  }
-}
 
 function drawOrganisms(){
   organisms.forEach(o=>{
-    const p=planets[o.p];
+    const p = planets[o.p];
     const x = sun.x + Math.cos(p.angle+o.a)*p.dist;
     const y = sun.y + Math.sin(p.angle+o.a)*p.dist;
     ctx.fillStyle="#66CCFF";
@@ -111,7 +110,7 @@ function drawOrganisms(){
   });
 }
 
-// ---------------- LOOP ----------------
+// ---------- LOOP ----------
 function loop(){
   ctx.fillStyle="#020214";
   ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -122,9 +121,9 @@ function loop(){
   drawStars();
   drawSun();
   planets.forEach(drawPlanet);
-  drawOrganisms();
   updateLife();
-  
+  drawOrganisms();
+
   requestAnimationFrame(loop);
 }
 loop();
