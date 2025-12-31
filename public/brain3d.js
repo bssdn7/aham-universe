@@ -81,7 +81,10 @@ function makeTexturedWorld(dist,size,map,normal=null){
 
 function spawnMercury(d){ makeTexturedWorld(d,12,"/textures/mercury.jpg"); }
 function spawnVenus(d){ makeTexturedWorld(d,18,"/textures/venus.jpg"); }
-function spawnEarth(d){ makeTexturedWorld(d,20,"/textures/earth.jpg","/textures/earth_normal.jpg"); }
+function spawnEarth(d){
+  const earth = makeTexturedWorld(d,20,"/textures/earth.jpg","/textures/earth_normal.jpg");
+  addEarthLife(earth);
+}
 function spawnMars(d){ makeTexturedWorld(d,16,"/textures/mars.jpg"); }
 function spawnJupiter(d){ makeTexturedWorld(d,36,"/textures/jupiter.jpg"); }
 function spawnSaturn(d){
@@ -109,6 +112,32 @@ function addSaturnRings(planet){
   planet.add(ring);
 }
 
+function addEarthLife(planet){
+  // Clouds
+  const cloud = new THREE.Mesh(
+    new THREE.SphereGeometry(21,64,64),
+    new THREE.MeshStandardMaterial({
+      map: loader.load("/textures/earth_clouds.JPG"),
+      transparent:true,
+      opacity:0.85,
+      depthWrite:false
+    })
+  );
+
+  // City lights (night glow)
+  const night = new THREE.Mesh(
+    new THREE.SphereGeometry(20.02,64,64),
+    new THREE.MeshBasicMaterial({
+      map: loader.load("/textures/earth_night.JPG"),
+      blending:THREE.AdditiveBlending,
+      transparent:true,
+      opacity:0.9
+    })
+  );
+
+  planet.add(night);
+  planet.add(cloud);
+}
 
 // -------- Animate --------
 function animate(){
