@@ -43,7 +43,7 @@ function init(){
   scene.add(sunLight);
 
 
-  scene.add(new THREE.AmbientLight(0x404050, 2.8));
+  scene.add(new THREE.AmbientLight(0x404050, 1.6));
 
   spawnMercury(140);
   spawnVenus(190);
@@ -70,7 +70,7 @@ function makeWorld(dist,size,map,normal=null){
       map:loader.load(map),
       normalMap:normal?loader.load(normal):null,
       roughness:0.85,
-      emissive: new THREE.Color(0xffffff).multiplyScalar(0.25)
+      emissive: new THREE.Color(0xffffff).multiplyScalar(0.08)
     })
   );
   mesh.userData={d:dist,a:Math.random()*Math.PI*2,s:0.002+Math.random()*0.002};
