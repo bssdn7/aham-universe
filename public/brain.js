@@ -122,9 +122,9 @@ function loop(){
   drawStars();
   drawSun();
   planets.forEach(drawPlanet);
-  
-  updateLife();
   drawOrganisms();
+  updateLife();
+  
   requestAnimationFrame(loop);
 }
 loop();
