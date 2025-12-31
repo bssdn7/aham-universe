@@ -31,7 +31,12 @@ for(let i=0;i<6;i++){
     angle: Math.random()*Math.PI*2,
     speed: 0.0005 + Math.random()*0.0007,
     color: COLORS[i%COLORS.length],
-    life: Math.random()
+    life: Math.random(),
+
+    // Soul-core (metaphor layer)
+    vitality: 0.4 + Math.random()*0.4,  // fertility
+    stability: 0.4 + Math.random()*0.4, // smoothness of cycles
+    memory: 0                            // accumulated history
   });
 }
 
@@ -41,20 +46,49 @@ const organisms = [];
 // ---------- LIFE ENGINE ----------
 function updateLife(){
   planets.forEach((p,pi)=>{
-    if(p.life>0.15 && Math.random()<0.02){
+    // fertility depends on vitality & stability
+    const birthChance = 0.01 + p.vitality * 0.03;
+    const noise = (Math.random()-0.5) * (1 - p.stability) * 0.02;
+
+    if(p.life > 0.15 && Math.random() < birthChance){
       organisms.push({p:pi,a:Math.random()*6.28,age:0});
     }
-    p.life = Math.max(0, Math.min(1, p.life + (Math.random()-0.5)*0.002));
+
+    // slow, balanced drift of biosphere
+    p.life = Math.max(0, Math.min(1, p.life + (Math.random()-0.5)*0.002 + noise));
+
+    // soul-core evolution
+    // thriving life increases vitality; crashes increase memory
+    if(p.life > 0.7) p.vitality = Math.min(1, p.vitality + 0.0006);
+    if(p.life < 0.2) {
+      p.memory += 0.002;                     // record a “scar”
+      p.vitality = Math.max(0, p.vitality - 0.0008);
+    }
+
+    // stability slowly relaxes toward balanced middle
+    p.stability += (0.5 - p.stability) * 0.0004;
   });
 
+  // organism aging / death
   for(let i=organisms.length-1;i>=0;i--){
     organisms[i].age++;
-    if(organisms[i].age>600) organisms.splice(i,1);
+    if(organisms[i].age > 600){
+      // add memory when organisms die
+      const p = planets[organisms[i].p];
+      if(p) p.memory = Math.min(1, p.memory + 0.001);
+      organisms.splice(i,1);
+    }
   }
 
+  // migration prefers high vitality + low memory (healthier worlds)
   if(Math.random()<0.01 && organisms.length>10){
-    organisms[Math.random()*organisms.length|0].p =
-      Math.random()*planets.length|0;
+    const o = organisms[Math.random()*organisms.length|0];
+    let best = 0, bestScore = -1;
+    planets.forEach((p,idx)=>{
+      const score = p.vitality - p.memory + Math.random()*0.1;
+      if(score > bestScore){ bestScore = score; best = idx; }
+    });
+    o.p = best;
   }
 }
 
@@ -89,13 +123,25 @@ function drawPlanet(p){
   const x = sun.x + Math.cos(p.angle)*p.dist;
   const y = sun.y + Math.sin(p.angle)*p.dist;
 
+  // vitality tint (warmer = healthier)
+  const warm = Math.min(1, p.vitality + 0.2);
+  const base = p.color;
   const g = ctx.createRadialGradient(x-p.r/3, y-p.r/3, p.r/2, x, y, p.r);
-  g.addColorStop(0,"#fff");
-  g.addColorStop(1,p.color);
+  g.addColorStop(0, "#fff");
+  g.addColorStop(1, base);
   ctx.fillStyle = g;
   ctx.beginPath();
   ctx.arc(x,y,p.r,0,Math.PI*2);
   ctx.fill();
+
+  // faint memory ring (history scars)
+  if(p.memory > 0.05){
+    ctx.strokeStyle = `rgba(200,180,255,${Math.min(0.25, p.memory)})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(x,y,p.r+3,0,Math.PI*2);
+    ctx.stroke();
+  }
 
   p.angle += p.speed;
 }
