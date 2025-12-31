@@ -21,15 +21,28 @@ stars.setAttribute("position", new THREE.BufferAttribute(sArr,3));
 scene.add(new THREE.Points(stars,new THREE.PointsMaterial({color:0xffffff})));
 
 /* Sun */
+const sunMat = new THREE.MeshStandardMaterial({
+  emissive: 0xfff2aa,
+  emissiveIntensity: 2,
+  color: 0xffdd66,
+  roughness: 0.2,
+  metalness: 0
+});
+
 const sun = new THREE.Mesh(
   new THREE.SphereGeometry(22,64,64),
-  new THREE.MeshBasicMaterial({color:0xffee88})
+  sunMat
 );
 scene.add(sun);
 
-/* Light */
-const light = new THREE.PointLight(0xfff2cc,3,4000);
+/* Physical sunlight */
+const light = new THREE.PointLight(0xfff2cc, 5, 6000);
+light.castShadow = false;
 scene.add(light);
+
+/* Ambient fill */
+scene.add(new THREE.AmbientLight(0x222244));
+
 
 /* Real Planets */
 const planets=[];
