@@ -26,9 +26,9 @@ function init(){
 
   // Space lighting
   scene.add(new THREE.AmbientLight(0x182040, 1.2));
-  scene.add(new THREE.HemisphereLight(0x88aaff, 0x020210, 2.0));
+  scene.add(new THREE.HemisphereLight(0x88aaff, 0x020210, 1.3));
 
-  const sunLight = new THREE.PointLight(0xfff2aa, 200000, 500000, 2);
+  const sunLight = new THREE.PointLight(0xfff2aa, 110000, 350000, 2);
   sunLight.position.set(0,0,0);
   scene.add(sunLight);
 
@@ -70,7 +70,7 @@ function makeTexturedWorld(dist,size,map,normal=null){
     normalMap: normal ? loader.load(normal) : null,
     roughness:0.6,
     metalness:0,
-    emissive: new THREE.Color(0xffffff).multiplyScalar(0.02)
+    emissive: new THREE.Color(0xffffff).multiplyScalar(0.01)
   });
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(size,64,64), mat);
   mesh.userData={d:dist,a:Math.random()*Math.PI*2,s:0.002+Math.random()*0.002};
