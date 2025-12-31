@@ -3,12 +3,12 @@ const fs = require("fs");
 const reproduce = require("./reproduction");
 
 const app = express();
-const PORT = process.env.PORT || 8080;   // Railway expects 8080
+const PORT = Number(process.env.PORT || 8080);
 
 app.use(express.static("public"));
 
 app.get("/", (req,res)=>res.send("AHAM ONLINE"));
-app.get("/health", (req,res)=>res.send("alive"));
+app.get("/health",(req,res)=>res.send("alive"));
 
 app.get("/organisms",(req,res)=>{
   const all=[];
@@ -22,18 +22,12 @@ app.get("/organisms",(req,res)=>{
   res.json(all);
 });
 
-function ensurePlanet(name){
-  if(!fs.existsSync("organisms")) fs.mkdirSync("organisms");
-  const dir="organisms/"+name;
-  if(!fs.existsSync(dir)) fs.mkdirSync(dir);
-}
-
 function runPlanet(p){
   const dir="organisms/"+p;
   const files=fs.readdirSync(dir).filter(f=>f.endsWith(".json"));
   const list=files.map(f=>JSON.parse(fs.readFileSync(dir+"/"+f)));
 
-  // reproduction
+  // births
   if(list.length>=2 && Math.random()<0.45){
     const a=list[Math.floor(Math.random()*list.length)];
     const b=list[Math.floor(Math.random()*list.length)];
@@ -43,7 +37,8 @@ function runPlanet(p){
 
   // migration
   if(list.length>1 && Math.random()<0.05){
-    const target=fs.readdirSync("organisms")[Math.floor(Math.random()*fs.readdirSync("organisms").length)];
+    const planets=fs.readdirSync("organisms");
+    const target=planets[Math.floor(Math.random()*planets.length)];
     if(target!==p){
       const m=list[Math.floor(Math.random()*list.length)];
       fs.renameSync(dir+"/"+m.name+".json","organisms/"+target+"/"+m.name+".json");
@@ -61,39 +56,36 @@ function runPlanet(p){
 }
 
 app.listen(PORT,"0.0.0.0",()=>{
-  console.log("SERVER ONLINE ON",PORT);
+  console.log("SERVER ONLINE",PORT);
   console.log("PLANETS ENGINE ONLINE");
 
   setInterval(()=>{
-  if(!fs.existsSync("organisms")) fs.mkdirSync("organisms");
+    if(!fs.existsSync("organisms")) fs.mkdirSync("organisms");
 
-  const planets = fs.readdirSync("organisms");
-  if(planets.length === 0){
-    fs.mkdirSync("organisms/sol");
-  }
-
-  fs.readdirSync("organisms").forEach(p=>{
-    runPlanet(p);
-  });
-
-  // planet birth
-  if(planets.length < 12 && Math.random() < 0.08){
-    const name="p"+Math.floor(Math.random()*100000);
-    fs.mkdirSync("organisms/"+name);
-    console.log("🌍 Planet formed:", name);
-  }
-
-  // planet death
-  fs.readdirSync("organisms").forEach(p=>{
-    const pop=fs.readdirSync("organisms/"+p).length;
-    if(pop===0 && Math.random()<0.05){
-      fs.rmdirSync("organisms/"+p);
-      console.log("☠️ Planet died:", p);
+    let planets=fs.readdirSync("organisms");
+    if(planets.length===0){
+      fs.mkdirSync("organisms/sol");
+      planets=["sol"];
     }
-  });
 
-  console.log("Galaxy heartbeat", new Date().toISOString());
-},60000);
+    planets.forEach(runPlanet);
 
+    // planet birth
+    if(planets.length<12 && Math.random()<0.08){
+      const name="p"+Math.floor(Math.random()*100000);
+      fs.mkdirSync("organisms/"+name);
+      console.log("🌍 Planet formed:",name);
+    }
 
+    // planet death
+    fs.readdirSync("organisms").forEach(p=>{
+      const pop=fs.readdirSync("organisms/"+p).length;
+      if(pop===0 && Math.random()<0.05){
+        fs.rmdirSync("organisms/"+p);
+        console.log("☠️ Planet died:",p);
+      }
+    });
 
+    console.log("Galaxy heartbeat",new Date().toISOString());
+  },60000);
+});
