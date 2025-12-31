@@ -70,12 +70,16 @@ app.listen(PORT,"0.0.0.0",()=>{
 
     planets.forEach(runPlanet);
 
-    // planet birth
-    if(planets.length<12 && Math.random()<0.08){
-      const name="p"+Math.floor(Math.random()*100000);
-      fs.mkdirSync("organisms/"+name);
-      console.log("🌍 Planet formed:",name);
-    }
+    // planet birth (forced visible mode)
+if(planets.length < 12){
+  if(Math.random() < 0.4){
+    const name = "p" + Math.floor(Math.random()*100000);
+    fs.mkdirSync("organisms/"+name);
+    console.log("🌍 Planet formed:", name);
+  } else {
+    console.log("⏳ Planet birth roll failed this minute");
+  }
+}
 
     // planet death
     fs.readdirSync("organisms").forEach(p=>{
