@@ -1,79 +1,93 @@
+// ================= CORE =================
+let planets = [];
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x050018);
+scene.fog = new THREE.FogExp2(0x02020a, 0.03);
 
-const cam = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
-cam.position.z = 14;
+const cam = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 200);
+cam.position.set(0,3,14);
 
+// ================= RENDERER =================
 const ren = new THREE.WebGLRenderer({antialias:true});
-ren.setSize(innerWidth,innerHeight);
+ren.setSize(innerWidth, innerHeight);
 ren.setPixelRatio(Math.min(devicePixelRatio,2));
+ren.physicallyCorrectLights = true;
+ren.outputColorSpace = THREE.SRGBColorSpace;
+ren.toneMapping = THREE.ACESFilmicToneMapping;
+ren.toneMappingExposure = 1.6;
+ren.shadowMap.enabled = true;
+ren.shadowMap.type = THREE.PCFSoftShadowMap;
 document.body.appendChild(ren.domElement);
 
-/* Lights */
-scene.add(new THREE.AmbientLight(0xffffff,0.35));
-const sunLight = new THREE.PointLight(0xfff2cc,2.5,200);
-sunLight.position.set(0,0,0);
-scene.add(sunLight);
+// ================= POST FX =================
+const composer = new THREE.EffectComposer(ren);
+composer.addPass(new THREE.RenderPass(scene, cam));
+composer.addPass(new THREE.UnrealBloomPass(
+  new THREE.Vector2(innerWidth,innerHeight), 1.3, 0.6, 0.25
+));
 
-/* Sun */
+// ================= STARFIELD =================
+const starGeo = new THREE.BufferGeometry();
+const starPos = [];
+for(let i=0;i<2000;i++){
+  starPos.push((Math.random()-0.5)*200,(Math.random()-0.5)*200,(Math.random()-0.5)*200);
+}
+starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPos,3));
+scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xccccff,size:0.3})));
+
+// ================= SUN =================
 const sun = new THREE.Mesh(
-  new THREE.SphereGeometry(2.3,64,64),
-  new THREE.MeshStandardMaterial({color:0xfff1a6, emissive:0xffd966})
+  new THREE.SphereGeometry(2,128,128),
+  new THREE.MeshStandardMaterial({ emissive:new THREE.Color(1,0.8,0.3), emissiveIntensity:6 })
 );
 scene.add(sun);
+const sunLight = new THREE.PointLight(0xfff2cc,14,200);
+sunLight.castShadow = true;
+scene.add(sunLight);
 
-/* Planet Factory */
-function createPlanet(dist,size,seed){
-  const hue = (seed*137)%360;
-  const mat = new THREE.MeshStandardMaterial({color:new THREE.Color(`hsl(${hue},70%,55%)`)});
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(size,48,48),mat);
+// ================= CREATE PLANET =================
+function createPlanet(dist){
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(0.8+Math.random()*0.6,64,64),
+    new THREE.MeshStandardMaterial({
+      roughness:0.6, metalness:0.05,
+      color:new THREE.Color().setHSL(Math.random(),0.7,0.45)
+    })
+  );
+  mesh.castShadow = true;
   scene.add(mesh);
-
-  const dots=[];
-  for(let i=0;i<12;i++){
-    const d = new THREE.Mesh(
-      new THREE.SphereGeometry(0.12,8,8),
-      new THREE.MeshBasicMaterial({color:0x66ccff})
-    );
-    scene.add(d); dots.push(d);
-  }
-  return {mesh,dist,angle:Math.random()*6.28,speed:0.0005+Math.random()*0.001,dots};
+  planets.push({
+    mesh,
+    dist,
+    ang:Math.random()*Math.PI*2,
+    speed:0.0002+Math.random()*0.0002
+  });
 }
 
-const planets = [
-  createPlanet(5,1.1,1),
-  createPlanet(7,0.9,2),
-  createPlanet(9,1.4,3),
-  createPlanet(11,0.7,4),
-  createPlanet(13,1.2,5)
-];
+// initial planets
+[5,7,9,11,13,15].forEach(createPlanet);
 
+// ================= ANIMATE =================
 function animate(){
   requestAnimationFrame(animate);
+  sun.rotation.y += 0.001;
 
-  sun.scale.setScalar(1+Math.sin(Date.now()*0.001)*0.02);
+  planets.forEach((p,i)=>{
+    p.ang += p.speed;
+    p.mesh.position.set(Math.cos(p.ang)*p.dist,0,Math.sin(p.ang)*p.dist);
 
-  planets.forEach(p=>{
-    p.angle+=p.speed;
-    p.mesh.position.x=Math.cos(p.angle)*p.dist;
-    p.mesh.position.z=Math.sin(p.angle)*p.dist;
-
-    p.dots.forEach((d,i)=>{
-      const a = p.angle + i*(6.28/p.dots.length);
-      d.position.set(
-        p.mesh.position.x + Math.cos(a)*1.4,
-        p.mesh.position.y + Math.sin(a*2)*0.4,
-        p.mesh.position.z + Math.sin(a)*1.4
-      );
-    });
+    const life = Math.sin(Date.now()*0.0003+i)*0.5+0.5;
+    p.mesh.material.emissive.setHSL(0.12+life*0.15,0.8,0.4+life*0.2);
+    p.mesh.scale.setScalar(1+life*0.03);
   });
 
-  ren.render(scene,cam);
+  composer.render();
 }
 animate();
 
-window.onresize=()=>{
+// ================= RESIZE =================
+addEventListener("resize",()=>{
   cam.aspect=innerWidth/innerHeight;
   cam.updateProjectionMatrix();
   ren.setSize(innerWidth,innerHeight);
-}
+  composer.setSize(innerWidth,innerHeight);
+});
