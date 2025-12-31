@@ -3,15 +3,14 @@ const fs = require("fs");
 const path = require("path");
 
 const app = express();
-const PORT = process.env.PORT || 3333;
+const PORT = process.env.PORT || 8080;
 
+// persistent Railway disk
 const ROOT = "/data/organisms";
-if (!fs.existsSync(ROOT)) fs.mkdirSync(ROOT);
+if(!fs.existsSync(ROOT)) fs.mkdirSync(ROOT,{recursive:true});
 
-console.log("PLANETS ENGINE ONLINE");
-
-function planets() {
-  return fs.readdirSync(ROOT).filter(f => fs.statSync(path.join(ROOT,f)).isDirectory());
+function planets(){
+  return fs.readdirSync(ROOT).filter(f=>fs.statSync(path.join(ROOT,f)).isDirectory());
 }
 
 function makeOrganism(planet){
@@ -23,45 +22,39 @@ function makeOrganism(planet){
       chaosSensitivity: Math.random(),
       learningRate: Math.random(),
       darkAffinity: Math.random()
-    },
-    golden: Math.random() < 0.02
+    }
   };
 }
 
-// ===================== HEARTBEAT =====================
+app.use(express.static("public"));
+app.get("/health",(req,res)=>res.send("alive"));
 
+app.get("/organisms",(req,res)=>{
+  const all=[];
+  planets().forEach(pl=>{
+    fs.readdirSync(path.join(ROOT,pl)).forEach(f=>{
+      try{ all.push(JSON.parse(fs.readFileSync(path.join(ROOT,pl,f)))); }catch{}
+    });
+  });
+  res.json(all);
+});
+
+// ========== HEARTBEAT ==========
 setInterval(()=>{
-  const p = planets();
+  let p = planets();
 
-  // Always grow galaxy up to 12 planets
+  // birth planets until 12
   if(p.length < 12){
     const name = "p"+Date.now();
     fs.mkdirSync(path.join(ROOT,name));
     console.log("🌍 Planet formed:",name);
-
     for(let i=0;i<3;i++){
       const o = makeOrganism(name);
       fs.writeFileSync(path.join(ROOT,name,o.id+".json"),JSON.stringify(o,null,2));
     }
   }
 
-  // Migration
-  if(p.length>1 && Math.random()<0.3){
-    const a = p[Math.floor(Math.random()*p.length)];
-    const b = p[Math.floor(Math.random()*p.length)];
-    if(a!==b){
-      const fa = fs.readdirSync(path.join(ROOT,a));
-      if(fa.length){
-        fs.renameSync(
-          path.join(ROOT,a,fa[0]),
-          path.join(ROOT,b,fa[0])
-        );
-        console.log("🚀 Migration:",fa[0],a,"→",b);
-      }
-    }
-  }
-
-  // Birth
+  // reproduction
   p.forEach(pl=>{
     if(Math.random()<0.4){
       const o = makeOrganism(pl);
@@ -70,34 +63,30 @@ setInterval(()=>{
     }
   });
 
-  // Death
+  // migration
+  if(p.length>1 && Math.random()<0.3){
+    const a = p[Math.floor(Math.random()*p.length)];
+    const b = p[Math.floor(Math.random()*p.length)];
+    if(a!==b){
+      const files = fs.readdirSync(path.join(ROOT,a));
+      if(files.length){
+        fs.renameSync(path.join(ROOT,a,files[0]), path.join(ROOT,b,files[0]));
+        console.log("🚀 Migration",a,"→",b);
+      }
+    }
+  }
+
+  // death
   if(Math.random()<0.25){
     const pl = p[Math.floor(Math.random()*p.length)];
-    const f = fs.readdirSync(path.join(ROOT,pl));
-    if(f.length){
-      fs.unlinkSync(path.join(ROOT,pl,f[0]));
+    const files = fs.readdirSync(path.join(ROOT,pl));
+    if(files.length){
+      fs.unlinkSync(path.join(ROOT,pl,files[0]));
       console.log("☠ Death on",pl);
     }
   }
 
   console.log("Galaxy heartbeat",new Date().toISOString());
-
 },60000);
 
-// ===================== API =====================
-
-app.use(express.static("public"));
-
-app.get("/organisms",(req,res)=>{
-  const all=[];
-  planets().forEach(pl=>{
-    fs.readdirSync(path.join(ROOT,pl)).forEach(f=>{
-      try{
-        all.push(JSON.parse(fs.readFileSync(path.join(ROOT,pl,f))));
-      }catch{}
-    });
-  });
-  res.json(all);
-});
-
-app.listen(PORT,()=>console.log("Server on",PORT));
+app.listen(PORT,"0.0.0.0",()=>console.log("SERVER ONLINE",PORT));
