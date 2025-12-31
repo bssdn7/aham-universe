@@ -1,4 +1,5 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.155/build/three.module.js";
+import { RGBELoader } from "https://cdn.jsdelivr.net/npm/three@0.155/examples/jsm/loaders/RGBELoader.js";
 
 let scene, camera, renderer;
 const planets = [];
@@ -11,6 +12,15 @@ function init(){
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000000);
 
+  // REAL SPACE LIGHT DOME (critical)
+  new RGBELoader().load(
+    "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/equirectangular/royal_esplanade_1k.hdr",
+    (hdr)=>{
+      hdr.mapping = THREE.EquirectangularReflectionMapping;
+      scene.environment = hdr;
+    }
+  );
+
   camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 20000);
   camera.position.set(0,140,420);
   camera.lookAt(0,0,0);
@@ -20,33 +30,32 @@ function init(){
   renderer.setSize(innerWidth,innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 2.4;
+  renderer.toneMappingExposure = 2.2;
   renderer.physicallyCorrectLights = true;
   document.body.appendChild(renderer.domElement);
 
-  // Ambient sky glow (cool)
-  scene.add(new THREE.AmbientLight(0x223355, 1.1));
-
-  // Sun light (warm)
+  // Warm sun
   const sunLight = new THREE.PointLight(0xfff2aa, 220000, 400000, 2);
   sunLight.position.set(0,0,0);
   scene.add(sunLight);
 
+  // Soft sky glow
+  scene.add(new THREE.AmbientLight(0x223355, 0.6));
+
   // Sun sphere
-  const sun = new THREE.Mesh(
+  scene.add(new THREE.Mesh(
     new THREE.SphereGeometry(90,64,64),
     new THREE.MeshStandardMaterial({
       color:0xfff2aa,
       emissive:new THREE.Color(0xfff2aa).multiplyScalar(10),
       roughness:1
     })
-  );
-  scene.add(sun);
+  ));
 
-  // Starfield
-  const starGeo = new THREE.BufferGeometry(), pos=[];
+  // Stars
+  const starGeo=new THREE.BufferGeometry(),pos=[];
   for(let i=0;i<9000;i++) pos.push((Math.random()-0.5)*15000,(Math.random()-0.5)*15000,(Math.random()-0.5)*15000);
-  starGeo.setAttribute("position", new THREE.Float32BufferAttribute(pos,3));
+  starGeo.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));
   scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,size:1})));
 
   spawnMercury(140);
@@ -72,7 +81,8 @@ function makeTexturedWorld(dist,size,map,normal=null){
     normalMap: normal ? loader.load(normal) : null,
     roughness:0.7,
     metalness:0,
-    emissive:new THREE.Color(0xffffff).multiplyScalar(0.05)
+    envMapIntensity: 1.4,
+    emissive:new THREE.Color(0xffffff).multiplyScalar(0.03)
   });
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(size,64,64), mat);
   mesh.userData={d:dist,a:Math.random()*Math.PI*2,s:0.002+Math.random()*0.002};
