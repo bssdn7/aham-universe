@@ -38,7 +38,26 @@ app.get("/organisms",(req,res)=>{
   });
   res.json(all);
 });
+app.get("/timeline",(req,res)=>{
+  const nodes=[], links=[];
+  planets().forEach(pl=>{
+    fs.readdirSync(path.join(ROOT,pl)).forEach(f=>{
+      const g = JSON.parse(fs.readFileSync(path.join(ROOT,pl,f)));
+      nodes.push({id:g.id, planet:pl, born:g.born});
+      (g.parents||[]).forEach(p=>links.push({source:p,target:g.id}));
+    });
+  });
+  res.json({nodes,links});
+});
 
+app.get("/cosmos",(req,res)=>{
+  const out=[];
+  planets().forEach(pl=>{
+    const pop = fs.readdirSync(path.join(ROOT,pl)).length;
+    out.push({planet:pl, population:pop});
+  });
+  res.json(out);
+});
 // ========== HEARTBEAT ==========
 setInterval(()=>{
   let p = planets();
