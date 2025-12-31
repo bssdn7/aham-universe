@@ -1,71 +1,72 @@
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000);
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.155/build/three.module.js";
 
-const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 5000);
-camera.position.set(0, 120, 260);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000010);
+
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 10000);
+camera.position.set(0,140,300);
 camera.lookAt(0,0,0);
 
 const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
-window.addEventListener("resize", ()=>{
-  camera.aspect = window.innerWidth/window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
+/* Galaxy stars */
+const stars = new THREE.BufferGeometry();
+const starCount = 4000;
+const sArr = new Float32Array(starCount*3);
+for(let i=0;i<starCount*3;i++) sArr[i]=(Math.random()-0.5)*4000;
+stars.setAttribute("position", new THREE.BufferAttribute(sArr,3));
+scene.add(new THREE.Points(stars,new THREE.PointsMaterial({color:0xffffff})));
 
-// Light
-const sunLight = new THREE.PointLight(0xffffff, 3, 0);
-sunLight.position.set(0,0,0);
-scene.add(sunLight);
-
-// Sun
+/* Sun */
 const sun = new THREE.Mesh(
-  new THREE.SphereGeometry(20,32,32),
-  new THREE.MeshBasicMaterial({color:0xfff2b0})
+  new THREE.SphereGeometry(22,64,64),
+  new THREE.MeshBasicMaterial({color:0xffee88})
 );
 scene.add(sun);
 
-// Planet creator
-function makePlanet(dist, size, color, speed){
-  const mesh = new THREE.Mesh(
-    new THREE.SphereGeometry(size,32,32),
+/* Light */
+const light = new THREE.PointLight(0xfff2cc,3,4000);
+scene.add(light);
+
+/* Real Planets */
+const planets=[];
+function planet(dist,size,color,speed){
+  const p = new THREE.Mesh(
+    new THREE.SphereGeometry(size,48,48),
     new THREE.MeshStandardMaterial({color})
   );
-  scene.add(mesh);
-  return {mesh, dist, angle:Math.random()*Math.PI*2, speed};
+  p.dist=dist;
+  p.speed=speed;
+  p.angle=Math.random()*Math.PI*2;
+  planets.push(p);
+  scene.add(p);
 }
 
-const planets = [
-  makePlanet(60, 4, 0xaaaaaa, 0.02),
-  makePlanet(90, 5, 0xffcc99, 0.016),
-  makePlanet(130, 5, 0x3399ff, 0.013),
-  makePlanet(170, 4, 0xff5533, 0.011),
-  makePlanet(230, 9, 0xffaa66, 0.008),
-  makePlanet(290, 8, 0xffe4aa, 0.007),
-  makePlanet(350, 7, 0x88ffff, 0.006),
-  makePlanet(410, 7, 0x3355ff, 0.005)
-];
-
-// Simple stars
-const starGeo = new THREE.BufferGeometry();
-const starPos = [];
-for(let i=0;i<2000;i++){
-  starPos.push((Math.random()-0.5)*4000, (Math.random()-0.5)*4000, (Math.random()-0.5)*4000);
-}
-starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPos,3));
-scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,size:1})));
+planet(40,3,0xaaaaaa,0.018); // Mercury
+planet(55,4,0xffbb77,0.014); // Venus
+planet(75,4.5,0x2266ff,0.012); // Earth
+planet(95,3.5,0xff5533,0.010); // Mars
+planet(135,9,0xffcc88,0.008); // Jupiter
+planet(185,8,0xffaa66,0.006); // Saturn
+planet(230,6,0x66ccff,0.005); // Uranus
+planet(270,6,0x3366ff,0.004); // Neptune
 
 function animate(){
   requestAnimationFrame(animate);
-
+  light.position.copy(sun.position);
   planets.forEach(p=>{
-    p.angle += p.speed;
-    p.mesh.position.set(Math.cos(p.angle)*p.dist,0,Math.sin(p.angle)*p.dist);
+    p.angle+=p.speed;
+    p.position.set(Math.cos(p.angle)*p.dist,0,Math.sin(p.angle)*p.dist);
   });
-sun.position.set(0,0,0);
-  renderer.render(scene, camera);
+  renderer.render(scene,camera);
 }
 animate();
+
+window.onresize=()=>{
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+}
