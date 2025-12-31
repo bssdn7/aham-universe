@@ -1,77 +1,70 @@
-// AHAM 3D CORE v1 — Real Solar System
-
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 
-const cam = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 5000);
-cam.position.set(0,180,420);
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 5000);
+camera.position.set(0, 200, 450);
 
 const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(innerWidth,innerHeight);
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-renderer.physicallyCorrectLights = true;
-renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
 document.body.appendChild(renderer.domElement);
 
-window.addEventListener("resize",()=>{
-  cam.aspect = innerWidth/innerHeight;
-  cam.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight);
+window.addEventListener("resize", ()=>{
+  camera.aspect = window.innerWidth/window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// Controls
-const controls = new THREE.OrbitControls(cam, renderer.domElement);
-controls.enableDamping = true;
-
-// Sun light
-const sunLight = new THREE.PointLight(0xffffff, 3000, 0);
-sunLight.castShadow = true;
+// Light
+const sunLight = new THREE.PointLight(0xffffff, 3, 0);
+sunLight.position.set(0,0,0);
 scene.add(sunLight);
 
-// Sun mesh
-const sunGeo = new THREE.SphereGeometry(20,64,64);
-const sunMat = new THREE.MeshBasicMaterial({color:0xfff2b0});
-const sun = new THREE.Mesh(sunGeo, sunMat);
+// Sun
+const sun = new THREE.Mesh(
+  new THREE.SphereGeometry(20,32,32),
+  new THREE.MeshBasicMaterial({color:0xfff2b0})
+);
 scene.add(sun);
 
-// Planet factory
-function makePlanet(dist, radius, color, speed){
-  const g = new THREE.SphereGeometry(radius,48,48);
-  const m = new THREE.MeshStandardMaterial({color});
-  const mesh = new THREE.Mesh(g,m);
+// Planet creator
+function makePlanet(dist, size, color, speed){
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(size,32,32),
+    new THREE.MeshStandardMaterial({color})
+  );
   scene.add(mesh);
-  return {mesh, dist, angle:Math.random()*6.28, speed};
+  return {mesh, dist, angle:Math.random()*Math.PI*2, speed};
 }
 
-// Realistic scale (AU compressed)
 const planets = [
-  makePlanet(50, 3, 0xaaaaaa, 0.020),
-  makePlanet(80, 5, 0xffddaa, 0.015),
-  makePlanet(110, 5, 0x3399ff, 0.012),
-  makePlanet(150, 4, 0xff5533, 0.010),
-  makePlanet(210, 10, 0xffaa66, 0.007),
-  makePlanet(270, 9, 0xffe4aa, 0.006),
-  makePlanet(330, 7, 0x88ffff, 0.005),
-  makePlanet(380, 7, 0x3355ff, 0.004)
+  makePlanet(60, 4, 0xaaaaaa, 0.02),
+  makePlanet(90, 5, 0xffcc99, 0.016),
+  makePlanet(130, 5, 0x3399ff, 0.013),
+  makePlanet(170, 4, 0xff5533, 0.011),
+  makePlanet(230, 9, 0xffaa66, 0.008),
+  makePlanet(290, 8, 0xffe4aa, 0.007),
+  makePlanet(350, 7, 0x88ffff, 0.006),
+  makePlanet(410, 7, 0x3355ff, 0.005)
 ];
 
-// Starfield
-const starsGeo = new THREE.BufferGeometry();
-const pos=[];
-for(let i=0;i<5000;i++){
-  pos.push((Math.random()-0.5)*4000,(Math.random()-0.5)*4000,(Math.random()-0.5)*4000);
+// Simple stars
+const starGeo = new THREE.BufferGeometry();
+const starPos = [];
+for(let i=0;i<2000;i++){
+  starPos.push((Math.random()-0.5)*4000, (Math.random()-0.5)*4000, (Math.random()-0.5)*4000);
 }
-starsGeo.setAttribute("position", new THREE.Float32BufferAttribute(pos,3));
-scene.add(new THREE.Points(starsGeo,new THREE.PointsMaterial({color:0xffffff,size:2})));
+starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPos,3));
+scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,size:1})));
 
-// Loop
 function animate(){
   requestAnimationFrame(animate);
+
   planets.forEach(p=>{
     p.angle += p.speed;
     p.mesh.position.set(Math.cos(p.angle)*p.dist,0,Math.sin(p.angle)*p.dist);
   });
-  controls.update();
-  renderer.render(scene,cam);
+
+  renderer.render(scene, camera);
 }
 animate();
