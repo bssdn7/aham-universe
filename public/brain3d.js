@@ -62,30 +62,57 @@ function init(){
 }
 
 // -------- Planet Factory --------
-function makeWorld(dist,size,map,normal=null){
-  const loader=new THREE.TextureLoader();
-  const mesh=new THREE.Mesh(
-    new THREE.SphereGeometry(size,64,64),
-    new THREE.MeshStandardMaterial({
-      map:loader.load(map),
-      normalMap:normal?loader.load(normal):null,
-      roughness:0.7,
-      emissive: new THREE.Color(0xffffff).multiplyScalar(0.05)
-    })
-  );
+const loader = new THREE.TextureLoader();
+
+function spawnMercury(d){
+  makeTexturedWorld(d,12,
+    "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/mercury.jpg");
+}
+function spawnVenus(d){
+  makeTexturedWorld(d,18,
+    "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/venus_atmos_1024.jpg");
+}
+function spawnEarth(d){
+  makeTexturedWorld(d,20,
+    "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg",
+    "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg");
+}
+function spawnMars(d){
+  makeTexturedWorld(d,16,
+    "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/mars_1k_color.jpg");
+}
+function spawnJupiter(d){
+  makeTexturedWorld(d,36,
+    "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/jupiter.jpg");
+}
+function spawnSaturn(d){
+  makeTexturedWorld(d,30,
+    "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/saturn.jpg");
+}
+function spawnUranus(d){
+  makeTexturedWorld(d,26,
+    "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/uranus.jpg");
+}
+function spawnNeptune(d){
+  makeTexturedWorld(d,24,
+    "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/neptune.jpg");
+}
+
+function makeTexturedWorld(dist,size,map,normal=null){
+  const mat = new THREE.MeshStandardMaterial({
+    map: loader.load(map),
+    normalMap: normal ? loader.load(normal) : null,
+    roughness: 0.7,
+    metalness: 0,
+    emissive: new THREE.Color(0xffffff).multiplyScalar(0.05)
+  });
+
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(size,64,64), mat);
   mesh.userData={d:dist,a:Math.random()*Math.PI*2,s:0.002+Math.random()*0.002};
   planets.push(mesh);
   scene.add(mesh);
 }
 
-function spawnMercury(d){ makeWorld(d,12,"https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/mercury.jpg"); }
-function spawnVenus(d){ makeWorld(d,18,"https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/venus_atmos_1024.jpg"); }
-function spawnEarth(d){ makeWorld(d,20,"https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg","https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg"); }
-function spawnMars(d){ makeWorld(d,16,"https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/mars_1k_color.jpg"); }
-function spawnJupiter(d){ makeWorld(d,36,"https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/jupiter.jpg"); }
-function spawnSaturn(d){ makeWorld(d,30,"https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/saturn.jpg"); }
-function spawnUranus(d){ makeWorld(d,26,"https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/uranus.jpg"); }
-function spawnNeptune(d){ makeWorld(d,24,"https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/neptune.jpg"); }
 
 function animate(){
   requestAnimationFrame(animate);
