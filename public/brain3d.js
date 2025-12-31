@@ -2,6 +2,7 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.155/build/three.mod
 
 let scene, camera, renderer;
 const planets = [];
+const moons = [];
 const loader = new THREE.TextureLoader();
 
 init();
@@ -22,6 +23,11 @@ function init(){
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 2.4;
   renderer.physicallyCorrectLights = true;
+
+  // SHADOW CORE
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
   document.body.appendChild(renderer.domElement);
 
   // Space lighting
@@ -30,16 +36,23 @@ function init(){
 
   const sunLight = new THREE.PointLight(0xfff2aa, 110000, 350000, 2);
   sunLight.position.set(0,0,0);
+  sunLight.castShadow = true;
+  sunLight.shadow.mapSize.set(4096,4096);
+  sunLight.shadow.camera.near = 1;
+  sunLight.shadow.camera.far = 5000;
   scene.add(sunLight);
 
   // Sun
-  scene.add(new THREE.Mesh(
+  const sun = new THREE.Mesh(
     new THREE.SphereGeometry(90,64,64),
     new THREE.MeshStandardMaterial({
       color:0xfff2aa,
       emissive:new THREE.Color(0xfff2aa).multiplyScalar(10)
     })
-  ));
+  );
+  sun.receiveShadow = false;
+  sun.castShadow = false;
+  scene.add(sun);
 
   // Stars
   const g=new THREE.BufferGeometry(),p=[];
@@ -56,6 +69,8 @@ function init(){
   spawnUranus(650);
   spawnNeptune(760);
 
+  spawnMoon(planets[2]); // Earth's moon
+
   window.onresize=()=>{
     camera.aspect=innerWidth/innerHeight;
     camera.updateProjectionMatrix();
@@ -63,7 +78,7 @@ function init(){
   };
 }
 
-// -------- Real Planets --------
+// ---------- Planets ----------
 function makeTexturedWorld(dist,size,map,normal=null){
   const mat = new THREE.MeshStandardMaterial({
     map: loader.load(map),
@@ -74,6 +89,8 @@ function makeTexturedWorld(dist,size,map,normal=null){
   });
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(size,64,64), mat);
   mesh.userData={d:dist,a:Math.random()*Math.PI*2,s:0.002+Math.random()*0.002};
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
   planets.push(mesh);
   scene.add(mesh);
   return mesh;
@@ -88,23 +105,33 @@ function spawnEarth(d){
 function spawnMars(d){ makeTexturedWorld(d,16,"/textures/mars.jpg"); }
 function spawnJupiter(d){ makeTexturedWorld(d,36,"/textures/jupiter.jpg"); }
 function spawnSaturn(d){
-  const saturn = makeTexturedWorld(d,30,"/textures/saturn.jpg");
-  addSaturnRings(saturn);
+  const sat = makeTexturedWorld(d,30,"/textures/saturn.jpg");
+  addSaturnRings(sat);
 }
-
 function spawnUranus(d){ makeTexturedWorld(d,26,"/textures/uranus.jpg"); }
 function spawnNeptune(d){ makeTexturedWorld(d,24,"/textures/neptune.jpg"); }
 
+// ---------- Moon ----------
+function spawnMoon(planet){
+  const moon = new THREE.Mesh(
+    new THREE.SphereGeometry(6,48,48),
+    new THREE.MeshStandardMaterial({color:0xcccccc, roughness:1})
+  );
+  moon.userData={p:planet,a:Math.random()*Math.PI*2,d:30,s:0.01};
+  moon.castShadow=true;
+  moon.receiveShadow=true;
+  moons.push(moon);
+  scene.add(moon);
+}
+
+// ---------- Saturn Rings ----------
 function addSaturnRings(planet){
-  const tex = loader.load("/textures/saturn_ring.png");
   const ring = new THREE.Mesh(
     new THREE.RingGeometry(40, 70, 128),
     new THREE.MeshStandardMaterial({
-      map: tex,
+      map: loader.load("/textures/saturn_ring.png"),
       transparent:true,
       side:THREE.DoubleSide,
-      roughness:0.8,
-      metalness:0,
       emissive:new THREE.Color(0xffffff).multiplyScalar(0.04)
     })
   );
@@ -112,9 +139,8 @@ function addSaturnRings(planet){
   planet.add(ring);
 }
 
+// ---------- Earth Life ----------
 function addEarthLife(planet){
-
-  // CLOUDS
   const cloud = new THREE.Mesh(
     new THREE.SphereGeometry(21,64,64),
     new THREE.MeshStandardMaterial({
@@ -124,20 +150,13 @@ function addEarthLife(planet){
       depthWrite:false
     })
   );
-
-  // NIGHT LIGHTS (self illuminated layer ABOVE clouds)
   const nightMat = new THREE.MeshBasicMaterial({
-    map: loader.load("/textures/IMG_7814.jpeg"),
+    map: loader.load("/textures/earth_night.JPG"),
     transparent:true,
     blending:THREE.AdditiveBlending
   });
+  const night = new THREE.Mesh(new THREE.SphereGeometry(21.05,64,64), nightMat);
 
-  const night = new THREE.Mesh(
-    new THREE.SphereGeometry(21.05,64,64),
-    nightMat
-  );
-
-  // Proper sun-direction masking
   night.onBeforeRender = () => {
     const sunDir = planet.position.clone().normalize().negate();
     const facing = sunDir.dot(new THREE.Vector3(0,0,1));
@@ -148,13 +167,25 @@ function addEarthLife(planet){
   planet.add(cloud);
 }
 
-// -------- Animate --------
+// ---------- Animate ----------
 function animate(){
   requestAnimationFrame(animate);
+
   planets.forEach(p=>{
     p.userData.a += p.userData.s;
     p.position.set(Math.cos(p.userData.a)*p.userData.d,0,Math.sin(p.userData.a)*p.userData.d);
     p.rotation.y += 0.003;
   });
+
+  moons.forEach(m=>{
+    m.userData.a += m.userData.s;
+    const p = m.userData.p.position;
+    m.position.set(
+      p.x + Math.cos(m.userData.a)*m.userData.d,
+      0,
+      p.z + Math.sin(m.userData.a)*m.userData.d
+    );
+  });
+
   renderer.render(scene,camera);
 }
