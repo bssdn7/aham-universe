@@ -3,6 +3,8 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.155/build/three.mod
 let scene, camera, renderer;
 const planets = [];
 const moons = [];
+const asteroids = [];
+const comets = [];
 const loader = new THREE.TextureLoader();
 
 init();
@@ -18,44 +20,35 @@ function init(){
 
   renderer = new THREE.WebGLRenderer({antialias:true});
   renderer.setSize(innerWidth,innerHeight);
-  renderer.setPixelRatio(1);                 // TV SAFE
+  renderer.setPixelRatio(1);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 2.4;
   renderer.physicallyCorrectLights = true;
-
-  // SHADOW CORE (LOW LOAD)
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
   document.body.appendChild(renderer.domElement);
 
-  // Space lighting
-  scene.add(new THREE.AmbientLight(0x182040, 1.2));
-  scene.add(new THREE.HemisphereLight(0x88aaff, 0x020210, 1.3));
+  scene.add(new THREE.AmbientLight(0x182040,1.2));
+  scene.add(new THREE.HemisphereLight(0x88aaff,0x020210,1.3));
 
-  const sunLight = new THREE.PointLight(0xfff2aa, 110000, 350000, 2);
+  const sunLight = new THREE.PointLight(0xfff2aa,110000,350000,2);
   sunLight.position.set(0,0,0);
-  sunLight.castShadow = true;
-  sunLight.shadow.mapSize.set(1024,1024);   // TV SAFE
-  sunLight.shadow.camera.near = 1;
-  sunLight.shadow.camera.far = 5000;
+  sunLight.castShadow=true;
+  sunLight.shadow.mapSize.set(1024,1024);
+  sunLight.shadow.camera.near=1;
+  sunLight.shadow.camera.far=5000;
   scene.add(sunLight);
 
-  // Sun
   scene.add(new THREE.Mesh(
-    new THREE.SphereGeometry(90,32,32),      // TV SAFE
-    new THREE.MeshStandardMaterial({
-      color:0xfff2aa,
-      emissive:new THREE.Color(0xfff2aa).multiplyScalar(10)
-    })
+    new THREE.SphereGeometry(90,32,32),
+    new THREE.MeshStandardMaterial({color:0xfff2aa,emissive:new THREE.Color(0xfff2aa).multiplyScalar(10)})
   ));
 
-  // Stars
-  const g=new THREE.BufferGeometry(),p=[];
-  for(let i=0;i<4000;i++) p.push((Math.random()-0.5)*16000,(Math.random()-0.5)*16000,(Math.random()-0.5)*16000);
-  g.setAttribute("position", new THREE.Float32BufferAttribute(p,3));
-  scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:1})));
+  const starGeo=new THREE.BufferGeometry(),pos=[];
+  for(let i=0;i<4000;i++) pos.push((Math.random()-0.5)*16000,(Math.random()-0.5)*16000,(Math.random()-0.5)*16000);
+  starGeo.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));
+  scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,size:1})));
 
   spawnMercury(140);
   spawnVenus(190);
@@ -66,7 +59,9 @@ function init(){
   spawnUranus(650);
   spawnNeptune(760);
 
-  spawnMoon(planets[2]); // Earth Moon
+  spawnMoon(planets[2]);
+  spawnAsteroidBelt();
+  spawnComet();
 
   window.onresize=()=>{
     camera.aspect=innerWidth/innerHeight;
@@ -82,87 +77,68 @@ function makeTexturedWorld(dist,size,map,normal=null){
     normalMap: normal ? loader.load(normal) : null,
     roughness:0.6,
     metalness:0,
-    emissive: new THREE.Color(0xffffff).multiplyScalar(0.01)
+    emissive:new THREE.Color(0xffffff).multiplyScalar(0.01)
   });
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(size,32,32), mat); // TV SAFE
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(size,32,32),mat);
   mesh.userData={d:dist,a:Math.random()*Math.PI*2,s:0.002+Math.random()*0.002};
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  planets.push(mesh);
-  scene.add(mesh);
+  mesh.castShadow=true; mesh.receiveShadow=true;
+  planets.push(mesh); scene.add(mesh);
   return mesh;
 }
 
 function spawnMercury(d){ makeTexturedWorld(d,12,"/textures/mercury.jpg"); }
 function spawnVenus(d){ makeTexturedWorld(d,18,"/textures/venus.jpg"); }
-function spawnEarth(d){
-  const earth = makeTexturedWorld(d,20,"/textures/earth.jpg","/textures/earth_normal.jpg");
-  addEarthLife(earth);
-}
+function spawnEarth(d){ const e=makeTexturedWorld(d,20,"/textures/earth.jpg","/textures/earth_normal.jpg"); addEarthLife(e); }
 function spawnMars(d){ makeTexturedWorld(d,16,"/textures/mars.jpg"); }
 function spawnJupiter(d){ makeTexturedWorld(d,36,"/textures/jupiter.jpg"); }
-function spawnSaturn(d){
-  const sat = makeTexturedWorld(d,30,"/textures/saturn.jpg");
-  addSaturnRings(sat);
-}
+function spawnSaturn(d){ const s=makeTexturedWorld(d,30,"/textures/saturn.jpg"); addSaturnRings(s); }
 function spawnUranus(d){ makeTexturedWorld(d,26,"/textures/uranus.jpg"); }
 function spawnNeptune(d){ makeTexturedWorld(d,24,"/textures/neptune.jpg"); }
 
 // ---------- Moon ----------
-function spawnMoon(planet){
-  const moon = new THREE.Mesh(
-    new THREE.SphereGeometry(6,24,24), // TV SAFE
-    new THREE.MeshStandardMaterial({color:0xcccccc, roughness:1})
-  );
-  moon.userData={p:planet,a:Math.random()*Math.PI*2,d:30,s:0.01};
-  moon.castShadow=true;
-  moon.receiveShadow=true;
-  moons.push(moon);
-  scene.add(moon);
+function spawnMoon(p){
+  const m=new THREE.Mesh(new THREE.SphereGeometry(6,24,24),new THREE.MeshStandardMaterial({color:0xccc,roughness:1}));
+  m.userData={p,a:Math.random()*Math.PI*2,d:30,s:0.01};
+  m.castShadow=true; m.receiveShadow=true;
+  moons.push(m); scene.add(m);
 }
 
-// ---------- Saturn Rings ----------
-function addSaturnRings(planet){
-  const ring = new THREE.Mesh(
-    new THREE.RingGeometry(40,70,64), // TV SAFE
-    new THREE.MeshStandardMaterial({
-      map: loader.load("/textures/saturn_ring.png"),
-      transparent:true,
-      side:THREE.DoubleSide,
-      emissive:new THREE.Color(0xffffff).multiplyScalar(0.04)
-    })
-  );
-  ring.rotation.x = Math.PI/2.2;
-  planet.add(ring);
+// ---------- Rings ----------
+function addSaturnRings(p){
+  const r=new THREE.Mesh(new THREE.RingGeometry(40,70,64),new THREE.MeshStandardMaterial({
+    map:loader.load("/textures/saturn_ring.png"),
+    transparent:true,side:THREE.DoubleSide,emissive:new THREE.Color(0xffffff).multiplyScalar(0.04)
+  }));
+  r.rotation.x=Math.PI/2.2; p.add(r);
 }
 
-// ---------- Earth Life ----------
-function addEarthLife(planet){
-  const cloud = new THREE.Mesh(
-    new THREE.SphereGeometry(21,32,32),
-    new THREE.MeshStandardMaterial({
-      map: loader.load("/textures/earth_clouds.JPG"),
-      transparent:true,
-      opacity:0.85,
-      depthWrite:false
-    })
-  );
+// ---------- Earth ----------
+function addEarthLife(p){
+  const c=new THREE.Mesh(new THREE.SphereGeometry(21,32,32),new THREE.MeshStandardMaterial({
+    map:loader.load("/textures/earth_clouds.JPG"),transparent:true,opacity:0.85,depthWrite:false
+  }));
+  const nm=new THREE.Mesh(new THREE.SphereGeometry(21.05,32,32),new THREE.MeshBasicMaterial({
+    map:loader.load("/textures/earth_night.JPG"),transparent:true,blending:THREE.AdditiveBlending
+  }));
+  nm.onBeforeRender=()=>{const f=p.position.clone().normalize().negate().dot(new THREE.Vector3(0,0,1));nm.material.opacity=THREE.MathUtils.clamp(-f,0,1)};
+  p.add(nm); p.add(c);
+}
 
-  const nightMat = new THREE.MeshBasicMaterial({
-    map: loader.load("/textures/earth_night.JPG"),
-    transparent:true,
-    blending:THREE.AdditiveBlending
-  });
-  const night = new THREE.Mesh(new THREE.SphereGeometry(21.05,32,32), nightMat);
+// ---------- Asteroids ----------
+function spawnAsteroidBelt(){
+  for(let i=0;i<800;i++){
+    const r=350+Math.random()*80,a=Math.random()*Math.PI*2;
+    const rock=new THREE.Mesh(new THREE.IcosahedronGeometry(1+Math.random()*2,0),new THREE.MeshStandardMaterial({color:0x777777,roughness:1}));
+    rock.userData={r,a,s:0.0005+Math.random()*0.001,rot:Math.random()*0.02};
+    asteroids.push(rock); scene.add(rock);
+  }
+}
 
-  night.onBeforeRender = () => {
-    const sunDir = planet.position.clone().normalize().negate();
-    const facing = sunDir.dot(new THREE.Vector3(0,0,1));
-    night.material.opacity = THREE.MathUtils.clamp(-facing, 0, 1);
-  };
-
-  planet.add(night);
-  planet.add(cloud);
+// ---------- Comet ----------
+function spawnComet(){
+  const c=new THREE.Mesh(new THREE.SphereGeometry(4,16,16),new THREE.MeshStandardMaterial({color:0xffffff,emissive:0x88ccff}));
+  c.userData={a:Math.random()*Math.PI*2,d:1200,s:0.0002};
+  comets.push(c); scene.add(c);
 }
 
 // ---------- Animate ----------
@@ -170,19 +146,26 @@ function animate(){
   requestAnimationFrame(animate);
 
   planets.forEach(p=>{
-    p.userData.a += p.userData.s;
+    p.userData.a+=p.userData.s;
     p.position.set(Math.cos(p.userData.a)*p.userData.d,0,Math.sin(p.userData.a)*p.userData.d);
-    p.rotation.y += 0.003;
+    p.rotation.y+=0.003;
   });
 
   moons.forEach(m=>{
-    m.userData.a += m.userData.s;
-    const p = m.userData.p.position;
-    m.position.set(
-      p.x + Math.cos(m.userData.a)*m.userData.d,
-      0,
-      p.z + Math.sin(m.userData.a)*m.userData.d
-    );
+    m.userData.a+=m.userData.s;
+    const p=m.userData.p.position;
+    m.position.set(p.x+Math.cos(m.userData.a)*m.userData.d,0,p.z+Math.sin(m.userData.a)*m.userData.d);
+  });
+
+  asteroids.forEach(o=>{
+    o.userData.a+=o.userData.s;
+    o.position.set(Math.cos(o.userData.a)*o.userData.r,(Math.random()-0.5)*10,Math.sin(o.userData.a)*o.userData.r);
+    o.rotation.x+=o.userData.rot; o.rotation.y+=o.userData.rot;
+  });
+
+  comets.forEach(c=>{
+    c.userData.a+=c.userData.s;
+    c.position.set(Math.cos(c.userData.a)*c.userData.d,0,Math.sin(c.userData.a)*c.userData.d);
   });
 
   renderer.render(scene,camera);
