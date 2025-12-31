@@ -1,5 +1,4 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.155/build/three.module.js";
-import { RGBELoader } from "https://cdn.jsdelivr.net/npm/three@0.155/examples/jsm/loaders/RGBELoader.js";
 
 let scene, camera, renderer;
 const planets = [];
@@ -12,51 +11,41 @@ function init(){
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x000000);
 
-  // REAL SPACE LIGHT DOME (critical)
-  new RGBELoader().load(
-    "https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/equirectangular/royal_esplanade_1k.hdr",
-    (hdr)=>{
-      hdr.mapping = THREE.EquirectangularReflectionMapping;
-      scene.environment = hdr;
-    }
-  );
-
   camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 20000);
   camera.position.set(0,140,420);
   camera.lookAt(0,0,0);
 
   renderer = new THREE.WebGLRenderer({ antialias:true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
   renderer.setSize(innerWidth,innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 2.2;
   renderer.physicallyCorrectLights = true;
   document.body.appendChild(renderer.domElement);
 
-  // Warm sun
-  const sunLight = new THREE.PointLight(0xfff2aa, 220000, 400000, 2);
+  // Procedural space lighting (NO HDR, NO CORS)
+  scene.add(new THREE.AmbientLight(0x223355, 1.2));
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x080820, 1.6));
+
+  const sunLight = new THREE.PointLight(0xfff2aa, 200000, 500000, 2);
   sunLight.position.set(0,0,0);
   scene.add(sunLight);
-
-  // Soft sky glow
-  scene.add(new THREE.AmbientLight(0x223355, 0.6));
 
   // Sun sphere
   scene.add(new THREE.Mesh(
     new THREE.SphereGeometry(90,64,64),
     new THREE.MeshStandardMaterial({
       color:0xfff2aa,
-      emissive:new THREE.Color(0xfff2aa).multiplyScalar(10),
-      roughness:1
+      emissive:new THREE.Color(0xfff2aa).multiplyScalar(10)
     })
   ));
 
-  // Stars
-  const starGeo=new THREE.BufferGeometry(),pos=[];
-  for(let i=0;i<9000;i++) pos.push((Math.random()-0.5)*15000,(Math.random()-0.5)*15000,(Math.random()-0.5)*15000);
-  starGeo.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));
-  scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,size:1})));
+  // Starfield
+  const g=new THREE.BufferGeometry(),p=[];
+  for(let i=0;i<10000;i++) p.push((Math.random()-0.5)*16000,(Math.random()-0.5)*16000,(Math.random()-0.5)*16000);
+  g.setAttribute("position", new THREE.Float32BufferAttribute(p,3));
+  scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:1})));
 
   spawnMercury(140);
   spawnVenus(190);
@@ -74,15 +63,14 @@ function init(){
   };
 }
 
-// ---------- Real Planets ----------
+// -------- Real Textured Planets --------
 function makeTexturedWorld(dist,size,map,normal=null){
   const mat = new THREE.MeshStandardMaterial({
     map: loader.load(map),
     normalMap: normal ? loader.load(normal) : null,
-    roughness:0.7,
+    roughness:0.6,
     metalness:0,
-    envMapIntensity: 1.4,
-    emissive:new THREE.Color(0xffffff).multiplyScalar(0.03)
+    emissive: new THREE.Color(0xffffff).multiplyScalar(0.06)
   });
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(size,64,64), mat);
   mesh.userData={d:dist,a:Math.random()*Math.PI*2,s:0.002+Math.random()*0.002};
@@ -99,12 +87,12 @@ function spawnSaturn(d){ makeTexturedWorld(d,30,"https://raw.githubusercontent.c
 function spawnUranus(d){ makeTexturedWorld(d,26,"https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/uranus.jpg"); }
 function spawnNeptune(d){ makeTexturedWorld(d,24,"https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/neptune.jpg"); }
 
-// ---------- Animate ----------
+// -------- Animate --------
 function animate(){
   requestAnimationFrame(animate);
   planets.forEach(p=>{
     p.userData.a += p.userData.s;
-    p.position.set(Math.cos(p.userData.a)*p.userData.d, 0, Math.sin(p.userData.a)*p.userData.d);
+    p.position.set(Math.cos(p.userData.a)*p.userData.d,0,Math.sin(p.userData.a)*p.userData.d);
     p.rotation.y += 0.003;
   });
   renderer.render(scene,camera);
