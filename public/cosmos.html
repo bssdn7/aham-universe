@@ -14,7 +14,7 @@ body{margin:0;background:#000;color:#aaa;font-family:sans-serif}
 <body>
 <div class="grid" id="g"></div>
 <script>
-fetch("/cosmic-fossils").then(r=>r.json()).then(list=>{
+fetch("/cosmos").then(r=>r.json()).then(data=>{
   const g=document.getElementById("g");
   list.sort((a,b)=>new Date(b.ended)-new Date(a.ended));
   list.forEach(f=>{
