@@ -9,7 +9,7 @@ function resize(){
 resize();
 addEventListener("resize", resize);
 
-const VISUAL_SCALE = 2.2;
+const VISUAL_SCALE = 1.5;
 const G = 0.03;
 const bodies = [];
 
