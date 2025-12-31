@@ -25,7 +25,7 @@ function init(){
   renderer.shadowMap.enabled = true;
   document.body.appendChild(renderer.domElement);
 
-  // Deep space stars
+  // Stars
   const starGeo = new THREE.BufferGeometry();
   const s=[];
   for(let i=0;i<9000;i++){
@@ -45,14 +45,16 @@ function init(){
   sun.castShadow = true;
   scene.add(sun);
 
-  // Real sunlight
+  // Lighting
   scene.add(new THREE.AmbientLight(0x080814,0.3));
   const sunlight = new THREE.PointLight(0xfff2dd, 28000, 90000, 2);
   sunlight.castShadow = true;
   scene.add(sunlight);
 
-  // Planets (will be replaced with textures next)
-  spawnPlanet(160, 14, 0x8888ff);
+  // Real Earth
+  spawnRealEarth(160);
+
+  // Other planets
   spawnPlanet(230, 18, 0xffcc88);
   spawnPlanet(300, 20, 0x3399ff);
   spawnPlanet(380, 16, 0xff5533);
@@ -81,6 +83,46 @@ function spawnPlanet(dist,size,color){
   mesh.receiveShadow=true;
   planets.push(mesh);
   scene.add(mesh);
+}
+
+function spawnRealEarth(dist){
+  const loader = new THREE.TextureLoader();
+
+  const surface = new THREE.Mesh(
+    new THREE.SphereGeometry(14,64,64),
+    new THREE.MeshStandardMaterial({
+      map: loader.load("https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg"),
+      normalMap: loader.load("https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_normal_2048.jpg"),
+      roughness: 1,
+      metalness: 0
+    })
+  );
+
+  const clouds = new THREE.Mesh(
+    new THREE.SphereGeometry(14.3,64,64),
+    new THREE.MeshStandardMaterial({
+      map: loader.load("https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_clouds_1024.png"),
+      transparent: true
+    })
+  );
+
+  const atmo = new THREE.Mesh(
+    new THREE.SphereGeometry(14.6,64,64),
+    new THREE.MeshBasicMaterial({
+      color: 0x3399ff,
+      transparent: true,
+      opacity: 0.06,
+      side: THREE.BackSide
+    })
+  );
+
+  const group = new THREE.Group();
+  group.add(surface);
+  group.add(clouds);
+  group.add(atmo);
+  group.userData={d:dist,a:Math.random()*Math.PI*2,s:0.0025};
+  planets.push(group);
+  scene.add(group);
 }
 
 function animate(){
