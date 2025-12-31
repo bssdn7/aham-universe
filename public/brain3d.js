@@ -18,13 +18,13 @@ function init(){
 
   renderer = new THREE.WebGLRenderer({antialias:true});
   renderer.setSize(innerWidth,innerHeight);
-  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setPixelRatio(1);                 // TV SAFE
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 2.4;
   renderer.physicallyCorrectLights = true;
 
-  // SHADOW CORE
+  // SHADOW CORE (LOW LOAD)
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
@@ -37,26 +37,23 @@ function init(){
   const sunLight = new THREE.PointLight(0xfff2aa, 110000, 350000, 2);
   sunLight.position.set(0,0,0);
   sunLight.castShadow = true;
-  sunLight.shadow.mapSize.set(4096,4096);
+  sunLight.shadow.mapSize.set(1024,1024);   // TV SAFE
   sunLight.shadow.camera.near = 1;
   sunLight.shadow.camera.far = 5000;
   scene.add(sunLight);
 
   // Sun
-  const sun = new THREE.Mesh(
-    new THREE.SphereGeometry(90,64,64),
+  scene.add(new THREE.Mesh(
+    new THREE.SphereGeometry(90,32,32),      // TV SAFE
     new THREE.MeshStandardMaterial({
       color:0xfff2aa,
       emissive:new THREE.Color(0xfff2aa).multiplyScalar(10)
     })
-  );
-  sun.receiveShadow = false;
-  sun.castShadow = false;
-  scene.add(sun);
+  ));
 
   // Stars
   const g=new THREE.BufferGeometry(),p=[];
-  for(let i=0;i<12000;i++) p.push((Math.random()-0.5)*16000,(Math.random()-0.5)*16000,(Math.random()-0.5)*16000);
+  for(let i=0;i<4000;i++) p.push((Math.random()-0.5)*16000,(Math.random()-0.5)*16000,(Math.random()-0.5)*16000);
   g.setAttribute("position", new THREE.Float32BufferAttribute(p,3));
   scene.add(new THREE.Points(g,new THREE.PointsMaterial({color:0xffffff,size:1})));
 
@@ -69,7 +66,7 @@ function init(){
   spawnUranus(650);
   spawnNeptune(760);
 
-  spawnMoon(planets[2]); // Earth's moon
+  spawnMoon(planets[2]); // Earth Moon
 
   window.onresize=()=>{
     camera.aspect=innerWidth/innerHeight;
@@ -87,7 +84,7 @@ function makeTexturedWorld(dist,size,map,normal=null){
     metalness:0,
     emissive: new THREE.Color(0xffffff).multiplyScalar(0.01)
   });
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(size,64,64), mat);
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(size,32,32), mat); // TV SAFE
   mesh.userData={d:dist,a:Math.random()*Math.PI*2,s:0.002+Math.random()*0.002};
   mesh.castShadow = true;
   mesh.receiveShadow = true;
@@ -114,7 +111,7 @@ function spawnNeptune(d){ makeTexturedWorld(d,24,"/textures/neptune.jpg"); }
 // ---------- Moon ----------
 function spawnMoon(planet){
   const moon = new THREE.Mesh(
-    new THREE.SphereGeometry(6,48,48),
+    new THREE.SphereGeometry(6,24,24), // TV SAFE
     new THREE.MeshStandardMaterial({color:0xcccccc, roughness:1})
   );
   moon.userData={p:planet,a:Math.random()*Math.PI*2,d:30,s:0.01};
@@ -127,7 +124,7 @@ function spawnMoon(planet){
 // ---------- Saturn Rings ----------
 function addSaturnRings(planet){
   const ring = new THREE.Mesh(
-    new THREE.RingGeometry(40, 70, 128),
+    new THREE.RingGeometry(40,70,64), // TV SAFE
     new THREE.MeshStandardMaterial({
       map: loader.load("/textures/saturn_ring.png"),
       transparent:true,
@@ -142,7 +139,7 @@ function addSaturnRings(planet){
 // ---------- Earth Life ----------
 function addEarthLife(planet){
   const cloud = new THREE.Mesh(
-    new THREE.SphereGeometry(21,64,64),
+    new THREE.SphereGeometry(21,32,32),
     new THREE.MeshStandardMaterial({
       map: loader.load("/textures/earth_clouds.JPG"),
       transparent:true,
@@ -150,12 +147,13 @@ function addEarthLife(planet){
       depthWrite:false
     })
   );
+
   const nightMat = new THREE.MeshBasicMaterial({
     map: loader.load("/textures/earth_night.JPG"),
     transparent:true,
     blending:THREE.AdditiveBlending
   });
-  const night = new THREE.Mesh(new THREE.SphereGeometry(21.05,64,64), nightMat);
+  const night = new THREE.Mesh(new THREE.SphereGeometry(21.05,32,32), nightMat);
 
   night.onBeforeRender = () => {
     const sunDir = planet.position.clone().normalize().negate();
