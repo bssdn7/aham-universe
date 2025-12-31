@@ -55,7 +55,7 @@ function init(){
   spawnRealEarth(160);
 
   // Other planets
-  spawnPlanet(230, 18, 0xffcc88);
+  spawnRealMars(230);
   spawnPlanet(300, 20, 0x3399ff);
   spawnPlanet(380, 16, 0xff5533);
   spawnPlanet(480, 36, 0xffaa33);
@@ -124,6 +124,38 @@ function spawnRealEarth(dist){
   planets.push(group);
   scene.add(group);
 }
+
+function spawnRealMars(dist){
+  const loader = new THREE.TextureLoader();
+
+  const surface = new THREE.Mesh(
+    new THREE.SphereGeometry(18,64,64),
+    new THREE.MeshStandardMaterial({
+      map: loader.load("https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/mars_1k_color.jpg"),
+      normalMap: loader.load("https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/mars_1k_normal.jpg"),
+      roughness: 1,
+      metalness: 0
+    })
+  );
+
+  const dust = new THREE.Mesh(
+    new THREE.SphereGeometry(18.4,64,64),
+    new THREE.MeshBasicMaterial({
+      color: 0xff5533,
+      transparent:true,
+      opacity:0.04,
+      side:THREE.BackSide
+    })
+  );
+
+  const group = new THREE.Group();
+  group.add(surface);
+  group.add(dust);
+  group.userData={d:dist,a:Math.random()*Math.PI*2,s:0.0021};
+  planets.push(group);
+  scene.add(group);
+}
+
 
 function animate(){
   requestAnimationFrame(animate);
