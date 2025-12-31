@@ -9,16 +9,49 @@ document.body.appendChild(ren.domElement);
 
 // LIGHTING
 scene.add(new THREE.AmbientLight(0x444444));
-
-const sunLight = new THREE.PointLight(0xffddaa,3,200);
+const sunLight = new THREE.PointLight(0xffddaa,3,300);
 scene.add(sunLight);
 
-// CENTRAL SUN
+// SUN
 const sunCore = new THREE.Mesh(
   new THREE.SphereGeometry(1.4,32,32),
   new THREE.MeshBasicMaterial({color:0xffcc66})
 );
 scene.add(sunCore);
+
+const corona = new THREE.Mesh(
+  new THREE.SphereGeometry(1.8,32,32),
+  new THREE.MeshBasicMaterial({
+    color:0xffaa55,
+    transparent:true,
+    opacity:0.18,
+    blending:THREE.AdditiveBlending
+  })
+);
+sunCore.add(corona);
+
+// STARFIELD
+const starsGeo = new THREE.BufferGeometry();
+const starPos = [];
+for(let i=0;i<4000;i++){
+  starPos.push((Math.random()-0.5)*600,(Math.random()-0.5)*600,(Math.random()-0.5)*600);
+}
+starsGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPos,3));
+scene.add(new THREE.Points(starsGeo,new THREE.PointsMaterial({color:0x8899ff,size:0.6})));
+
+// NEBULA
+const nebula=[];
+for(let i=0;i<10;i++){
+  const p=new THREE.Mesh(
+    new THREE.PlaneGeometry(80,80),
+    new THREE.MeshBasicMaterial({
+      color:new THREE.Color(`hsl(${200+Math.random()*40},70%,30%)`),
+      transparent:true,opacity:0.08,depthWrite:false,blending:THREE.AdditiveBlending
+    })
+  );
+  p.position.set((Math.random()-0.5)*80,(Math.random()-0.5)*80,-40-Math.random()*80);
+  scene.add(p); nebula.push(p);
+}
 
 // REGISTRIES
 const planetMeshes = {};
@@ -29,11 +62,17 @@ function makePlanet(name){
   const m = new THREE.Mesh(
     new THREE.IcosahedronGeometry(1,4),
     new THREE.MeshStandardMaterial({
-      roughness:0.4,
-      metalness:0.25,
-      emissiveIntensity:1.2
+      roughness:0.4,metalness:0.25,emissiveIntensity:1.2
     })
   );
+
+  // atmosphere
+  const atm = new THREE.Mesh(
+    new THREE.SphereGeometry(1.15,32,32),
+    new THREE.MeshBasicMaterial({color:0x66ccff,transparent:true,opacity:0.12,blending:THREE.AdditiveBlending})
+  );
+  m.add(atm);
+
   m.userData = {
     orbitRadius: 4 + Math.random()*6,
     orbitSpeed: 0.00005 + Math.random()*0.00008,
@@ -88,6 +127,17 @@ setInterval(load,2000); load();
 function animate(){
   requestAnimationFrame(animate);
   const t = Date.now();
+
+  // nebula drift
+  nebula.forEach((n,i)=>{
+    n.rotation.z += 0.00005;
+    n.position.x += Math.sin(t*0.00002+i)*0.002;
+  });
+
+  // camera drift
+  cam.position.x = Math.sin(t*0.00005)*2;
+  cam.position.y = Math.cos(t*0.00007)*2;
+  cam.lookAt(0,0,0);
 
   // PLANET ORBITS + PULSE
   Object.values(planetMeshes).forEach(m=>{
