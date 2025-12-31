@@ -118,30 +118,30 @@ function addEarthLife(planet){
   const cloud = new THREE.Mesh(
     new THREE.SphereGeometry(21,64,64),
     new THREE.MeshStandardMaterial({
-      map: loader.load("/textures/earth_clouds.JPG"),
+      map: loader.load("/textures/earth_clouds.jpg"),
       transparent:true,
       opacity:0.85,
       depthWrite:false
     })
   );
 
-  // NIGHT LIGHTS (self illuminated)
+  // NIGHT LIGHTS (self illuminated layer ABOVE clouds)
   const nightMat = new THREE.MeshBasicMaterial({
-    map: loader.load("/textures/earth_night.JPG"),
-    blending: THREE.AdditiveBlending,
+    map: loader.load("/textures/earth_night.jpg"),
     transparent:true,
-    opacity:0.9
+    blending:THREE.AdditiveBlending
   });
 
   const night = new THREE.Mesh(
-    new THREE.SphereGeometry(20.01,64,64),
+    new THREE.SphereGeometry(21.05,64,64),
     nightMat
   );
 
-  // Night/day masking shader
+  // Proper sun-direction masking
   night.onBeforeRender = () => {
-    const sunDir = new THREE.Vector3().subVectors(new THREE.Vector3(0,0,0), planet.position).normalize();
-    nightMat.opacity = Math.max(0, sunDir.dot(new THREE.Vector3(0,0,1)));
+    const sunDir = planet.position.clone().normalize().negate();
+    const facing = sunDir.dot(new THREE.Vector3(0,0,1));
+    night.material.opacity = THREE.MathUtils.clamp(-facing, 0, 1);
   };
 
   planet.add(night);
