@@ -7,84 +7,104 @@ function resize(){
   canvas.height = innerHeight;
 }
 resize();
-window.onresize = resize;
+addEventListener("resize", resize);
 
-// ---------- Physics ----------
-const G = 0.0008;
-const SOFTEN = 0.2;
+const VISUAL_SCALE = 2.2;
+const G = 0.03;
+const bodies = [];
 
-// ---------- Body ----------
+function cx(){return canvas.width/2}
+function cy(){return canvas.height/2}
+
 class Body{
-  constructor(name,mass,radius,x,y,vx,vy,color){
-    this.name=name;
-    this.mass=mass;
-    this.radius=radius;
+  constructor(x,y,vx,vy,mass,color){
     this.x=x; this.y=y;
     this.vx=vx; this.vy=vy;
+    this.mass=mass;
+    this.radius=Math.cbrt(mass)*2;
     this.color=color;
   }
 
-  gravitate(o){
-    const dx=o.x-this.x, dy=o.y-this.y;
-    const d=Math.sqrt(dx*dx+dy*dy)+SOFTEN;
-    const f=G*o.mass/(d*d);
-    this.vx+=dx/d*f;
-    this.vy+=dy/d*f;
-  }
-
   update(){
+    let ax=0, ay=0;
+    bodies.forEach(b=>{
+      if(b===this) return;
+      const dx=b.x-this.x;
+      const dy=b.y-this.y;
+      const d=Math.sqrt(dx*dx+dy*dy)+0.1;
+      const f=G*b.mass/(d*d);
+      ax+=f*dx/d;
+      ay+=f*dy/d;
+    });
+    this.vx+=ax;
+    this.vy+=ay;
     this.x+=this.vx;
     this.y+=this.vy;
   }
 
   draw(){
-    const g=ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,this.radius*3);
-    g.addColorStop(0,this.color);
-    g.addColorStop(1,"transparent");
-    ctx.fillStyle=g;
+    const dx=(this.x-cx())*VISUAL_SCALE+cx();
+    const dy=(this.y-cy())*VISUAL_SCALE+cy();
+    const r=this.radius*VISUAL_SCALE*2;
+
+    const glow=ctx.createRadialGradient(dx,dy,0,dx,dy,r*3);
+    glow.addColorStop(0,this.color);
+    glow.addColorStop(1,"transparent");
+    ctx.fillStyle=glow;
     ctx.beginPath();
-    ctx.arc(this.x,this.y,this.radius*3,0,Math.PI*2);
+    ctx.arc(dx,dy,r*3,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle=this.color;
+    ctx.beginPath();
+    ctx.arc(dx,dy,r,0,Math.PI*2);
     ctx.fill();
   }
 }
 
-// ---------- System Setup ----------
-const cx=()=>canvas.width/2, cy=()=>canvas.height/2;
+function makePlanet(dist,mass,color){
+  const v=Math.sqrt(G*sun.mass/dist);
+  bodies.push(new Body(cx()+dist,cy(),0,v,mass,color));
+}
 
-const bodies=[];
+// 🌞 SUN
+const sun=new Body(cx(),cy(),0,0,20000,"#fff3a0");
+bodies.push(sun);
 
-// Star
-bodies.push(new Body("Star",12000,40,cx(),cy(),0,0,"#ffd47a"));
+// 🪐 PLANETS (realistic layered system)
+makePlanet(120,15,"#8fd3ff");
+makePlanet(180,25,"#b488ff");
+makePlanet(260,30,"#ff8bbd");
+makePlanet(350,40,"#88ffb2");
+makePlanet(480,60,"#ffd28a");
+makePlanet(650,90,"#aab0ff");
 
-// Realistic planetary orbits (scaled AU)
-const planetData=[
-  {n:"Mercury",d:60,m:0.2,c:"#aaa"},
-  {n:"Venus",d:100,m:0.8,c:"#ffcc99"},
-  {n:"Earth",d:140,m:1,c:"#66aaff"},
-  {n:"Mars",d:180,m:0.3,c:"#ff5533"},
-  {n:"Jupiter",d:260,m:5,c:"#ffaa77"},
-  {n:"Saturn",d:340,m:4,c:"#ffe6aa"},
-  {n:"Uranus",d:420,m:3,c:"#88ffff"},
-  {n:"Neptune",d:500,m:3,c:"#5566ff"},
-];
+// 🌌 STARFIELD
+const stars=[];
+for(let i=0;i<800;i++){
+  stars.push({
+    x:Math.random()*innerWidth,
+    y:Math.random()*innerHeight,
+    s:Math.random()*2+0.5
+  });
+}
 
-planetData.forEach(p=>{
-  const v=Math.sqrt(G*bodies[0].mass/p.d);
-  bodies.push(new Body(p.n,p.m,8,cx()+p.d,cy(),0,v,p.c));
-});
-
-// ---------- Loop ----------
+// 🌠 RENDER LOOP
 function loop(){
-  ctx.fillStyle="rgba(0,0,0,0.25)";
+  ctx.fillStyle="rgba(0,0,0,0.15)";
   ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  for(let i=0;i<bodies.length;i++){
-    for(let j=0;j<bodies.length;j++){
-      if(i!==j) bodies[i].gravitate(bodies[j]);
-    }
-  }
+  // stars
+  ctx.fillStyle="#fff";
+  stars.forEach(s=>{
+    ctx.globalAlpha=Math.random()*0.6+0.2;
+    ctx.fillRect(s.x,s.y,s.s,s.s);
+  });
+  ctx.globalAlpha=1;
 
-  bodies.forEach(b=>{b.update(); b.draw();});
+  bodies.forEach(b=>b.update());
+  bodies.forEach(b=>b.draw());
+
   requestAnimationFrame(loop);
 }
 loop();
