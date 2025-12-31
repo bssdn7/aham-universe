@@ -1,105 +1,116 @@
-/* AHAM TRANSCENDENT COSMOS CORE */
+// =========================
+// AHAM COSMOLOGY CORE v1.0
+// =========================
 
-const canvas=document.createElement("canvas");
+const canvas = document.createElement("canvas");
 document.body.appendChild(canvas);
-const ctx=canvas.getContext("2d");
-resize(); window.onresize=resize;
-function resize(){canvas.width=innerWidth;canvas.height=innerHeight;}
+const ctx = canvas.getContext("2d");
+resize();
 
-const G=0.0004, CENTER=0.000002;
-const stars=[], planets=[], civs=[], bh=[], souls=[], dysons=[], ruins=[];
-
-const rand=(a,b)=>Math.random()*(b-a)+a;
-const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-
-/* CREATE */
-for(let i=0;i<5;i++)stars.push({x:rand(-300,300),y:rand(-200,200),m:15000,r:60});
-for(let i=0;i<18;i++)planets.push({x:rand(-450,450),y:rand(-250,250),vx:0,vy:0,m:rand(800,2000),r:rand(10,18),life:rand(0,100),tech:0,hue:rand(0,360),dead:false});
-
-/* MAIN */
-function step(){
-
-// STELLAR CENTERING
-stars.forEach(s=>{s.x+=(-s.x)*CENTER;s.y+=(-s.y)*CENTER;});
-
-// GRAVITY
-planets.forEach(p=>{
- stars.forEach(s=>{
-  const dx=s.x-p.x,dy=s.y-p.y,d=Math.hypot(dx,dy)+1;
-  const f=(G*s.m*p.m)/(d*d);
-  p.vx+=dx/d*f;p.vy+=dy/d*f;
- });
- bh.forEach(b=>{
-  const dx=b.x-p.x,dy=b.y-p.y,d=Math.hypot(dx,dy)+1;
-  if(d<b.r){p.dead=true;b.m+=p.m;}
-  const f=(b.m*0.001)/(d*d);
-  p.vx+=dx/d*f;p.vy+=dy/d*f;
- });
-});
-
-// MOVE
-planets.forEach(p=>{
- p.x+=p.vx;p.y+=p.vy;
- p.vx+=(-p.x)*CENTER;p.vy+=(-p.y)*CENTER;
-});
-
-// LIFE
-planets.forEach(p=>{
- if(p.dead)return;
- p.life+=rand(-0.3,0.5);
- if(p.life>80 && !p.civ) p.civ={pop:rand(100,500),tech:1};
- if(p.civ){
-  p.civ.pop*=1.002;
-  p.civ.tech+=0.001;
-  if(p.civ.tech>50 && Math.random()<0.01)dysons.push({p});
-  if(p.civ.tech>120 && Math.random()<0.002)bh.push({x:p.x,y:p.y,m:6000,r:45});
- }
- if(p.life<-50){ p.dead=true; ruins.push({x:p.x,y:p.y});}
-});
-
-// DYSON
-dysons.forEach(d=>{
- d.r=60+Math.sin(Date.now()*0.001)*3;
-});
-
-// BLACK HOLE DECAY
-bh.forEach((b,i)=>{ b.m-=0.2; if(b.m<3000) bh.splice(i,1);});
-
-// DRAW
-ctx.fillStyle="#000012"; ctx.fillRect(0,0,canvas.width,canvas.height);
-ctx.save(); ctx.translate(canvas.width/2,canvas.height/2);
-
-stars.forEach(s=>{
- let g=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,300);
- g.addColorStop(0,"#fff9b0"); g.addColorStop(1,"transparent");
- ctx.fillStyle=g; ctx.beginPath(); ctx.arc(s.x,s.y,300,0,7); ctx.fill();
- ctx.fillStyle="#ffe"; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,7); ctx.fill();
-});
-
-dysons.forEach(d=>{
- ctx.strokeStyle="rgba(200,200,255,0.3)";
- ctx.beginPath(); ctx.arc(d.p.x,d.p.y,80,0,7); ctx.stroke();
-});
-
-planets.forEach(p=>{
- ctx.fillStyle=`hsl(${p.hue},70%,50%)`;
- ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,7); ctx.fill();
- if(p.civ){
-  ctx.fillStyle="#0ff";
-  ctx.fillText("✦",p.x+6,p.y-6);
- }
-});
-
-bh.forEach(b=>{
- ctx.strokeStyle="#000"; ctx.lineWidth=8;
- ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,7); ctx.stroke();
-});
-
-ruins.forEach(r=>{
- ctx.fillStyle="#555"; ctx.beginPath(); ctx.arc(r.x,r.y,4,0,7); ctx.fill();
-});
-
-ctx.restore();
-requestAnimationFrame(step);
+window.addEventListener("resize", resize);
+function resize() {
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
 }
-step();
+
+// ---------- Constants ----------
+const G = 0.0025;
+const DRAG = 0.9995;         // cosmic friction
+const HORIZON = 4500;       // escape boundary
+const BOUNDARY_FORCE = 0.0005;
+const MAX_MASS = 1200;
+
+// ---------- Barycentric Center ----------
+const CENTER = { x: () => canvas.width/2, y: () => canvas.height/2 };
+
+// ---------- Body Class ----------
+class Body {
+  constructor(x,y,mass,color){
+    this.x=x; this.y=y;
+    this.vx=0; this.vy=0;
+    this.mass=mass;
+    this.color=color;
+    this.radius=Math.sqrt(mass);
+    this.life=1;
+  }
+
+  pull(o){
+    const dx=o.x-this.x, dy=o.y-this.y;
+    const d=Math.sqrt(dx*dx+dy*dy)+0.1;
+    const f=G*(this.mass*o.mass)/(d*d);
+    const nx=dx/d, ny=dy/d;
+    this.vx+=nx*f/this.mass;
+    this.vy+=ny*f/this.mass;
+  }
+
+  update(){
+    this.vx*=DRAG;
+    this.vy*=DRAG;
+    this.x+=this.vx;
+    this.y+=this.vy;
+
+    // Horizon containment
+    const cx=CENTER.x(), cy=CENTER.y();
+    const dx=this.x-cx, dy=this.y-cy;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    if(d>HORIZON){
+      this.vx -= dx * BOUNDARY_FORCE;
+      this.vy -= dy * BOUNDARY_FORCE;
+    }
+
+    // Lifecycle decay (black holes now die)
+    this.life *= 0.999995;
+    if(this.mass>MAX_MASS) this.life*=0.9999;
+  }
+
+  draw(){
+    const glow=this.radius*2;
+    const g=ctx.createRadialGradient(this.x,this.y,0,this.x,this.y,glow);
+    g.addColorStop(0,this.color);
+    g.addColorStop(1,"transparent");
+    ctx.fillStyle=g;
+    ctx.beginPath();
+    ctx.arc(this.x,this.y,glow,0,Math.PI*2);
+    ctx.fill();
+  }
+}
+
+// ---------- Universe ----------
+let bodies=[];
+
+// Central star
+bodies.push(new Body(CENTER.x(),CENTER.y(),900,"#ffd66b"));
+
+// Planets
+for(let i=0;i<8;i++){
+  const a=i*Math.PI/4;
+  const d=300+Math.random()*600;
+  const b=new Body(
+    CENTER.x()+Math.cos(a)*d,
+    CENTER.y()+Math.sin(a)*d,
+    40+Math.random()*80,
+    `hsl(${Math.random()*360},80%,60%)`
+  );
+  b.vy=Math.cos(a)*1.5;
+  b.vx=-Math.sin(a)*1.5;
+  bodies.push(b);
+}
+
+// ---------- Main Loop ----------
+function loop(){
+  ctx.fillStyle="rgba(0,0,0,0.3)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  for(let i=0;i<bodies.length;i++){
+    for(let j=i+1;j<bodies.length;j++){
+      bodies[i].pull(bodies[j]);
+      bodies[j].pull(bodies[i]);
+    }
+  }
+
+  bodies=bodies.filter(b=>b.life>0.1);
+  bodies.forEach(b=>{b.update(); b.draw();});
+
+  requestAnimationFrame(loop);
+}
+loop();
