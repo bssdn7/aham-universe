@@ -2,7 +2,8 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x000000);
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 5000);
-camera.position.set(0, 200, 450);
+camera.position.set(0, 120, 260);
+camera.lookAt(0,0,0);
 
 const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -64,7 +65,7 @@ function animate(){
     p.angle += p.speed;
     p.mesh.position.set(Math.cos(p.angle)*p.dist,0,Math.sin(p.angle)*p.dist);
   });
-
+sun.position.set(0,0,0);
   renderer.render(scene, camera);
 }
 animate();
