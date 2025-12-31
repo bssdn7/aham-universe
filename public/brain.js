@@ -36,7 +36,8 @@ for(let i=0;i<6;i++){
     r: 14 + Math.random()*16,
     angle: Math.random()*Math.PI*2,
     speed: 0.0005 + Math.random()*0.0007,
-    color: COLORS[i%COLORS.length]
+    color: COLORS[i%COLORS.length],
+    life: Math.random()
   });
 }
 
@@ -81,6 +82,34 @@ function drawPlanet(p){
 
   p.angle += p.speed;
 }
+function updateLife(){
+  planets.forEach((p,pi)=>{
+    if(p.life>0.15 && Math.random()<0.02){
+      organisms.push({p:pi,a:Math.random()*6.28,age:0});
+    }
+    p.life = Math.max(0, Math.min(1, p.life + (Math.random()-0.5)*0.002));
+  });
+
+  for(let i=organisms.length-1;i>=0;i--){
+    organisms[i].age++;
+    if(organisms[i].age>600) organisms.splice(i,1);
+  }
+
+  if(Math.random()<0.01 && organisms.length>10){
+    organisms[Math.random()*organisms.length|0].p =
+      Math.random()*planets.length|0;
+  }
+}
+
+function drawOrganisms(){
+  organisms.forEach(o=>{
+    const p=planets[o.p];
+    const x = sun.x + Math.cos(p.angle+o.a)*p.dist;
+    const y = sun.y + Math.sin(p.angle+o.a)*p.dist;
+    ctx.fillStyle="#66CCFF";
+    ctx.fillRect(x,y,2,2);
+  });
+}
 
 // ---------------- LOOP ----------------
 function loop(){
@@ -93,7 +122,9 @@ function loop(){
   drawStars();
   drawSun();
   planets.forEach(drawPlanet);
-
+  
+  updateLife();
+  drawOrganisms();
   requestAnimationFrame(loop);
 }
 loop();
