@@ -20,7 +20,7 @@ function init(){
   renderer.setSize(innerWidth, innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 0.85;
+  renderer.toneMappingExposure = 2.8;
   renderer.physicallyCorrectLights = true;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -48,7 +48,7 @@ function init(){
 
   // Lighting
   scene.add(new THREE.AmbientLight(0x111122,0.15));
-  const sunlight = new THREE.PointLight(0xfff2dd,1600,15000,2);
+  const sunlight = new THREE.PointLight(0xfff2dd,18000,50000,2);
   sunlight.position.set(0,0,0);
   sunlight.castShadow = true;
   scene.add(sunlight);
