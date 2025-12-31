@@ -127,7 +127,7 @@ function addEarthLife(p){
 // ---------- Asteroids ----------
 function spawnAsteroidBelt(){
   for(let i=0;i<800;i++){
-    const r=350+Math.random()*80,a=Math.random()*Math.PI*2;
+    const r=320+Math.random()*60,a=Math.random()*Math.PI*2;
     const rock=new THREE.Mesh(new THREE.IcosahedronGeometry(1+Math.random()*2,0),new THREE.MeshStandardMaterial({color:0x777777,roughness:1}));
     rock.userData={r,a,s:0.0005+Math.random()*0.001,rot:Math.random()*0.02};
     asteroids.push(rock); scene.add(rock);
