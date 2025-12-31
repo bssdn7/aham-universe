@@ -5,6 +5,7 @@ const planets = [];
 const moons = [];
 const asteroids = [];
 const comets = [];
+const life = [];
 const loader = new THREE.TextureLoader();
 
 init();
@@ -62,6 +63,7 @@ function init(){
   spawnMoon(planets[2]);
   spawnAsteroidBelt();
   spawnComet();
+  spawnLife(planets[2]); // Earth life
 
   window.onresize=()=>{
     camera.aspect=innerWidth/innerHeight;
@@ -115,13 +117,22 @@ function addSaturnRings(p){
 // ---------- Earth ----------
 function addEarthLife(p){
   const c=new THREE.Mesh(new THREE.SphereGeometry(21,32,32),new THREE.MeshStandardMaterial({
-    map:loader.load("/textures/earth_clouds.JPG"),transparent:true,opacity:0.85,depthWrite:false
+    map:loader.load("/textures/earth_clouds.png"),transparent:true,opacity:0.85,depthWrite:false
   }));
   const nm=new THREE.Mesh(new THREE.SphereGeometry(21.05,32,32),new THREE.MeshBasicMaterial({
-    map:loader.load("/textures/earth_night.JPG"),transparent:true,blending:THREE.AdditiveBlending
+    map:loader.load("/textures/earth_night.jpg"),transparent:true,blending:THREE.AdditiveBlending
   }));
   nm.onBeforeRender=()=>{const f=p.position.clone().normalize().negate().dot(new THREE.Vector3(0,0,1));nm.material.opacity=THREE.MathUtils.clamp(-f,0,1)};
   p.add(nm); p.add(c);
+}
+
+// ---------- Life ----------
+function spawnLife(p){
+  for(let i=0;i<30;i++){
+    const d=new THREE.Mesh(new THREE.SphereGeometry(0.8,8,8),new THREE.MeshBasicMaterial({color:0x00ff88}));
+    d.userData={p,a:Math.random()*Math.PI*2,r:22+Math.random()*3,life:200+Math.random()*300};
+    life.push(d); scene.add(d);
+  }
 }
 
 // ---------- Asteroids ----------
@@ -166,6 +177,15 @@ function animate(){
   comets.forEach(c=>{
     c.userData.a+=c.userData.s;
     c.position.set(Math.cos(c.userData.a)*c.userData.d,0,Math.sin(c.userData.a)*c.userData.d);
+  });
+
+  life.forEach((l,i)=>{
+    l.userData.life--;
+    const p=l.userData.p.position;
+    l.userData.a+=0.01;
+    l.position.set(p.x+Math.cos(l.userData.a)*l.userData.r,0,p.z+Math.sin(l.userData.a)*l.userData.r);
+    if(Math.random()<0.0005) spawnLife(l.userData.p);
+    if(l.userData.life<=0){scene.remove(l);life.splice(i,1);}
   });
 
   renderer.render(scene,camera);
