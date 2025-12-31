@@ -113,7 +113,8 @@ function addSaturnRings(planet){
 }
 
 function addEarthLife(planet){
-  // Clouds
+
+  // CLOUDS
   const cloud = new THREE.Mesh(
     new THREE.SphereGeometry(21,64,64),
     new THREE.MeshStandardMaterial({
@@ -124,16 +125,24 @@ function addEarthLife(planet){
     })
   );
 
-  // City lights (night glow)
+  // NIGHT LIGHTS (self illuminated)
+  const nightMat = new THREE.MeshBasicMaterial({
+    map: loader.load("/textures/earth_night.JPG"),
+    blending: THREE.AdditiveBlending,
+    transparent:true,
+    opacity:0.9
+  });
+
   const night = new THREE.Mesh(
-    new THREE.SphereGeometry(20.02,64,64),
-    new THREE.MeshBasicMaterial({
-      map: loader.load("/textures/earth_night.JPG"),
-      blending:THREE.AdditiveBlending,
-      transparent:true,
-      opacity:0.9
-    })
+    new THREE.SphereGeometry(20.01,64,64),
+    nightMat
   );
+
+  // Night/day masking shader
+  night.onBeforeRender = () => {
+    const sunDir = new THREE.Vector3().subVectors(new THREE.Vector3(0,0,0), planet.position).normalize();
+    nightMat.opacity = Math.max(0, sunDir.dot(new THREE.Vector3(0,0,1)));
+  };
 
   planet.add(night);
   planet.add(cloud);
