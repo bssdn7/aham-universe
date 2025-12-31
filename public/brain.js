@@ -8,23 +8,10 @@ ren.setClearColor(0x000010,1);
 document.body.appendChild(ren.domElement);
 
 // HDRI SPACE LIGHTING
-const pmrem = new THREE.PMREMGenerator(ren);
-new THREE.RGBELoader().load(
-  "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/4k/kloppenheim_06_4k.hdr",
-  tex=>{
-    const env = pmrem.fromEquirectangular(tex).texture;
-    scene.environment = env;
-    scene.background = env;
-  }
-);
+scene.background = new THREE.Color(0x02030a);
 
 // POST PROCESS BLOOM
-const composer = new EffectComposer(ren);
-composer.addPass(new RenderPass(scene,cam));
-composer.addPass(new UnrealBloomPass(
-  new THREE.Vector2(innerWidth,innerHeight),
-  1.4, 0.9, 0.12
-));
+let composer = null;
 
 // CENTRAL STAR
 const sunCore = new THREE.Mesh(
@@ -117,7 +104,7 @@ function animate(){
     m.position.set(p.position.x+Math.cos(a)*1.8, p.position.y+Math.sin(a)*1.8, p.position.z);
   });
 
-  composer.render();
+  ren.render(scene,cam);
 }
 animate();
 
