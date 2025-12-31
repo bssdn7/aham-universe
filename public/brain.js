@@ -1,129 +1,144 @@
+// ===================== CORE =====================
 const scene = new THREE.Scene();
 
-const cam = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
-cam.position.set(0,8,18);
-cam.lookAt(0,0,0);
+const cam = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 2000);
+cam.position.set(0,6,22);
 
-const ren = new THREE.WebGLRenderer({antialias:true});
-ren.setSize(innerWidth,innerHeight);
-ren.setClearColor(0x000010,1);
+// ===================== RENDERER =====================
+const ren = new THREE.WebGLRenderer({ antialias:true });
+ren.setSize(innerWidth, innerHeight);
+ren.setPixelRatio(Math.min(devicePixelRatio,2));
+ren.physicallyCorrectLights = true;
+ren.toneMapping = THREE.ACESFilmicToneMapping;
+ren.toneMappingExposure = 1.4;
 document.body.appendChild(ren.domElement);
 
-/* SUN */
+// ===================== BLOOM =====================
+const composer = new THREE.EffectComposer(ren);
+composer.addPass(new THREE.RenderPass(scene,cam));
+const bloom = new THREE.UnrealBloomPass(
+  new THREE.Vector2(innerWidth,innerHeight),
+  1.25, 0.5, 0.15
+);
+composer.addPass(bloom);
+
+// ===================== HDR SKY =====================
+new THREE.RGBELoader().load(
+  "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/milky_way_1k.hdr",
+  tex=>{
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    scene.background = tex;
+    scene.environment = tex;
+  }
+);
+
+// ===================== LIGHT =====================
+scene.add(new THREE.AmbientLight(0xffffff,0.12));
+
+// ===================== SUN =====================
 const sun = new THREE.Mesh(
-  new THREE.SphereGeometry(1.4,64,64),
+  new THREE.SphereGeometry(3,64,64),
   new THREE.MeshStandardMaterial({
-    emissive:new THREE.Color(1,0.7,0.2),
-    emissiveIntensity:3,
-    color:new THREE.Color(0.2,0.15,0.05)
+    color: new THREE.Color(1,0.85,0.55),
+    emissive: new THREE.Color(1,0.75,0.25),
+    emissiveIntensity: 10,
+    roughness:0.2, metalness:0
   })
 );
 scene.add(sun);
-scene.add(new THREE.PointLight(0xffddaa,4,100));
 
-/* STARS */
-const starGeo=new THREE.BufferGeometry();
-const starPos=[];
-for(let i=0;i<5000;i++){
-  starPos.push((Math.random()-0.5)*800,(Math.random()-0.5)*800,-Math.random()*800);
+// ===================== PLANETS =====================
+const planets=[];
+
+function spawnPlanet(r,dist,speed){
+  const g = new THREE.SphereGeometry(r,48,48);
+  const m = new THREE.MeshStandardMaterial({
+    color:new THREE.Color().setHSL(Math.random(),0.65,0.45),
+    roughness:0.9, metalness:0.05
+  });
+  const p = new THREE.Mesh(g,m);
+
+  const halo = new THREE.Mesh(
+    new THREE.SphereGeometry(r*1.08,32,32),
+    new THREE.MeshBasicMaterial({
+      color:m.color, transparent:true, opacity:0.25,
+      blending:THREE.AdditiveBlending, side:THREE.BackSide
+    })
+  );
+  p.add(halo);
+
+  p.userData={a:Math.random()*Math.PI*2,d:dist,s:speed};
+  scene.add(p);
+  planets.push(p);
 }
+
+// spawn system
+spawnPlanet(1.2,6,0.0006);
+spawnPlanet(1.8,9,0.00045);
+spawnPlanet(1.4,12,0.00035);
+spawnPlanet(2.4,15,0.00028);
+spawnPlanet(1.1,18,0.00022);
+
+// ===================== ORGANISMS =====================
+const beings=[];
+function spawnBeing(planet){
+  const b = new THREE.Mesh(
+    new THREE.IcosahedronGeometry(0.35,2),
+    new THREE.MeshStandardMaterial({
+      color:planet.material.color.clone().offsetHSL(0.05,0.1,0.1),
+      emissive:planet.material.color.clone().multiplyScalar(0.6),
+      emissiveIntensity:0.8
+    })
+  );
+  b.userData={p:planet,a:Math.random()*Math.PI*2};
+  scene.add(b);
+  beings.push(b);
+}
+setInterval(()=>planets.forEach(p=>Math.random()<0.4&&spawnBeing(p)),2500);
+
+// ===================== STARS =====================
+const starGeo=new THREE.BufferGeometry(),starPos=[];
+for(let i=0;i<5000;i++) starPos.push((Math.random()-0.5)*400,(Math.random()-0.5)*400,(Math.random()-0.5)*400);
 starGeo.setAttribute("position",new THREE.Float32BufferAttribute(starPos,3));
-scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({size:0.6,color:0xffffff})));
+scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,size:0.3})));
 
-/* STATE */
-const planetMeshes = {};
-const organismMeshes = {};
-let latestOrganisms = [];
-
-/* PLANET SYNC */
-async function syncPlanets(){
-  const data = await fetch("/planets").then(r=>r.json());
-
-  data.forEach(p=>{
-    if(!planetMeshes[p.id]){
-      const g = p.genome || {chaos:0.5,learn:0.5,dark:0.5,golden:false};
-
-      const mesh = new THREE.Mesh(
-        new THREE.SphereGeometry(0.5+Math.random()*0.4,32,32),
-        new THREE.MeshStandardMaterial({
-          color: g.golden
-            ? new THREE.Color(1,0.84,0.15)
-            : new THREE.Color().setHSL(
-                0.35 - g.dark*0.3 + g.chaos*0.2,
-                0.8,
-                0.45 + g.learn*0.2
-              ),
-          emissive: g.golden
-            ? new THREE.Color(1,0.6,0.15)
-            : new THREE.Color(g.chaos*0.8,(1-g.chaos)*0.4,g.dark*0.6),
-          emissiveIntensity: g.golden ? 2 : 0.6,
-          roughness:0.7,
-          metalness:0.05
-        })
-      );
-
-      scene.add(mesh);
-      planetMeshes[p.id] = {
-        mesh,
-        orbit: p.orbit,
-        speed: p.speed,
-        angle: Math.random()*Math.PI*2 // local clock
-      };
-    }
-  });
-}
-
-/* LIFE SYNC */
-async function syncLife(){
-  latestOrganisms = await fetch("/organisms").then(r=>r.json());
-  latestOrganisms.forEach(o=>{
-    if(!organismMeshes[o.id]){
-      const m = new THREE.Mesh(
-        new THREE.SphereGeometry(0.07,8,8),
-        new THREE.MeshBasicMaterial({color:0x66ccff})
-      );
-      scene.add(m);
-      organismMeshes[o.id] = m;
-    }
-  });
-}
-
-setInterval(syncPlanets,2000); syncPlanets();
-setInterval(syncLife,1500); syncLife();
-
-/* ANIMATE */
+// ===================== ANIMATE =====================
 function animate(){
   requestAnimationFrame(animate);
 
-  Object.values(planetMeshes).forEach(p=>{
-    p.angle += p.speed;
-    p.mesh.position.set(
-      Math.cos(p.angle)*p.orbit,
-      0,
-      Math.sin(p.angle)*p.orbit
+  // planet orbits
+  planets.forEach(p=>{
+    p.userData.a+=p.userData.s;
+    p.position.set(
+      Math.cos(p.userData.a)*p.userData.d,
+      Math.sin(p.userData.a*0.6)*1.2,
+      Math.sin(p.userData.a)*p.userData.d
     );
   });
 
-  latestOrganisms.forEach(o=>{
-    const p = planetMeshes[o.planet];
-    const m = organismMeshes[o.id];
-    if(!p || !m) return;
-
-    const a = Date.now()*0.001 + (parseInt(o.id.slice(-3))||0);
-    m.position.set(
-      p.mesh.position.x + Math.cos(a)*0.8,
-      0,
-      p.mesh.position.z + Math.sin(a)*0.8
+  // organisms orbit planets
+  beings.forEach(b=>{
+    b.userData.a+=0.03;
+    const p=b.userData.p;
+    b.position.set(
+      p.position.x+Math.cos(b.userData.a)*0.9,
+      p.position.y+Math.sin(b.userData.a)*0.5,
+      p.position.z+Math.sin(b.userData.a)*0.9
     );
   });
 
-  ren.render(scene,cam);
+  // camera float
+  cam.position.x=Math.sin(Date.now()*0.0002)*6;
+  cam.position.z=22+Math.cos(Date.now()*0.0002)*4;
+  cam.lookAt(0,0,0);
+
+  composer.render();
 }
 animate();
 
-/* RESIZE */
-addEventListener("resize",()=>{
+window.onresize=()=>{
   cam.aspect=innerWidth/innerHeight;
   cam.updateProjectionMatrix();
   ren.setSize(innerWidth,innerHeight);
-});
+  composer.setSize(innerWidth,innerHeight);
+};
