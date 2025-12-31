@@ -5,7 +5,7 @@ const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3333;
 
-const ROOT = path.join(__dirname, "organisms");
+const ROOT = "/data/organisms";
 if (!fs.existsSync(ROOT)) fs.mkdirSync(ROOT);
 
 console.log("PLANETS ENGINE ONLINE");
