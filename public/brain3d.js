@@ -134,10 +134,10 @@ function addSaturnRings(p){
 // ---------- Earth ----------
 function addEarthLife(p){
   const c=new THREE.Mesh(new THREE.SphereGeometry(21,32,32),new THREE.MeshStandardMaterial({
-    map:loader.load("/textures/earth_clouds.png"),transparent:true,opacity:0.85,depthWrite:false
+    map:loader.load("/textures/IMG_7815.jpeg"),transparent:true,opacity:0.85,depthWrite:false
   }));
   const nm=new THREE.Mesh(new THREE.SphereGeometry(21.05,32,32),new THREE.MeshBasicMaterial({
-    map:loader.load("/textures/earth_night.jpg"),transparent:true,blending:THREE.AdditiveBlending
+    map:loader.load("/textures/IMG_7814.jpeg"),transparent:true,blending:THREE.AdditiveBlending
   }));
   nm.onBeforeRender=()=>{const f=p.position.clone().normalize().negate().dot(new THREE.Vector3(0,0,1));nm.material.opacity=THREE.MathUtils.clamp(-f,0,1)};
   p.add(nm); p.add(c);
