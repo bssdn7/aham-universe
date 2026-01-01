@@ -30,7 +30,7 @@ function init(){
   renderer.setPixelRatio(1);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 2.6;
+  renderer.toneMappingExposure = 1.6;
   renderer.physicallyCorrectLights = true;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -175,19 +175,38 @@ function spawnComet(){
 
 // ---------- Galactic Dust ----------
 function spawnGalacticDust(){
-  const geo=new THREE.BufferGeometry(),p=[],c=[];
-  for(let i=0;i<18000;i++){
-    const r=8000*Math.random(),a=Math.random()*Math.PI*2,y=(Math.random()-0.5)*3000;
-    p.push(Math.cos(a)*r,y,Math.sin(a)*r);
-    c.push(0.3+Math.random()*0.7,0.4+Math.random()*0.6,1);
+  const geo = new THREE.BufferGeometry();
+  const pos = [];
+  const col = [];
+
+  for(let i=0;i<24000;i++){
+    const r = 5000 + Math.random()*6000;
+    const a = Math.random()*Math.PI*2;
+    const y = (Math.random()-0.5)*1800;
+
+    pos.push(Math.cos(a)*r, y, Math.sin(a)*r);
+
+    const hue = 0.55 + Math.random()*0.15;
+    const color = new THREE.Color().setHSL(hue, 1, 0.6);
+    col.push(color.r, color.g, color.b);
   }
-  geo.setAttribute("position",new THREE.Float32BufferAttribute(p,3));
-  geo.setAttribute("color",new THREE.Float32BufferAttribute(c,3));
-  const cloud=new THREE.Points(geo,new THREE.PointsMaterial({
-    size:2,vertexColors:true,transparent:true,opacity:0.35,blending:THREE.AdditiveBlending,depthWrite:false
-  }));
-  scene.add(cloud);
-  dust.push(cloud);
+
+  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos,3));
+  geo.setAttribute("color", new THREE.Float32BufferAttribute(col,3));
+
+  const mat = new THREE.PointsMaterial({
+    size: 6,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.7,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending
+  });
+
+  const nebula = new THREE.Points(geo, mat);
+  nebula.renderOrder = -10;
+  scene.add(nebula);
+  dust.push(nebula);
 }
 
 // ---------- Animate ----------
