@@ -1,89 +1,84 @@
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.155/build/three.module.js";
-import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.155/examples/jsm/controls/OrbitControls.js";
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.155/build/three.module.js'
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.155/examples/jsm/controls/OrbitControls.js'
 
-const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(0x000010,0.00012);
+/* ---------------- SCENE ---------------- */
+const scene = new THREE.Scene()
+scene.background = new THREE.Color(0x000000)
 
-const camera = new THREE.PerspectiveCamera(60,innerWidth/innerHeight,1,50000);
-camera.position.set(0,1800,4800);
+/* ---------------- CAMERA ---------------- */
+const camera = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 20000)
+camera.position.set(0, 400, 1200)
 
-const renderer = new THREE.WebGLRenderer({antialias:true});
-renderer.setSize(innerWidth,innerHeight);
-renderer.setPixelRatio(devicePixelRatio);
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.35;
-document.body.appendChild(renderer.domElement);
+/* ---------------- RENDERER ---------------- */
+const renderer = new THREE.WebGLRenderer({ antialias:true })
+renderer.setSize(innerWidth, innerHeight)
+renderer.setPixelRatio(devicePixelRatio)
+document.body.appendChild(renderer.domElement)
 
-new OrbitControls(camera,renderer.domElement);
+/* ---------------- CONTROLS ---------------- */
+const controls = new OrbitControls(camera, renderer.domElement)
+controls.enableDamping = true
+controls.target.set(0,0,0)
 
-// ===== STARFIELD =====
-const starGeo = new THREE.BufferGeometry();
-const starPos = [];
-for(let i=0;i<16000;i++){
-  starPos.push((Math.random()-0.5)*40000,(Math.random()-0.5)*40000,(Math.random()-0.5)*40000);
+/* ---------------- LIGHT ---------------- */
+const sunLight = new THREE.PointLight(0xffffff, 3, 5000)
+sunLight.position.set(0,0,0)
+scene.add(sunLight)
+
+scene.add(new THREE.AmbientLight(0x404040, 0.6))
+
+/* ---------------- STARFIELD ---------------- */
+const starGeo = new THREE.BufferGeometry()
+const starCount = 20000
+const starPos = []
+for(let i=0;i<starCount;i++){
+  starPos.push((Math.random()-0.5)*20000, (Math.random()-0.5)*20000, (Math.random()-0.5)*20000)
 }
-starGeo.setAttribute("position",new THREE.Float32BufferAttribute(starPos,3));
-scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({size:2,color:0xffffff})));
+starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos,3))
+const starMat = new THREE.PointsMaterial({color:0xffffff,size:1})
+scene.add(new THREE.Points(starGeo, starMat))
 
-// ===== VOLUMETRIC NEBULA =====
-const dust=[];
-function spawnGalacticDust(){
-  for(let layer=0;layer<4;layer++){
-    const geo=new THREE.BufferGeometry(),pos=[],col=[];
-    const depth=1500*layer;
-    for(let i=0;i<9000;i++){
-      const r=4500+Math.random()*6500,a=Math.random()*Math.PI*2,y=(Math.random()-0.5)*1200+(depth-2000);
-      pos.push(Math.cos(a)*r,y,Math.sin(a)*r);
-      const c=new THREE.Color().setHSL(0.55+Math.random()*0.25,1,0.55);
-      col.push(c.r,c.g,c.b);
-    }
-    geo.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));
-    geo.setAttribute("color",new THREE.Float32BufferAttribute(col,3));
-    const mat=new THREE.PointsMaterial({size:8,vertexColors:true,transparent:true,opacity:.35,depthWrite:false,blending:THREE.AdditiveBlending});
-    const n=new THREE.Points(geo,mat); n.renderOrder=-10; scene.add(n); dust.push(n);
-  }
+/* ---------------- SUN ---------------- */
+const sun = new THREE.Mesh(
+  new THREE.SphereGeometry(80,64,64),
+  new THREE.MeshBasicMaterial({ color:0xffdd66 })
+)
+scene.add(sun)
+
+/* ---------------- PLANETS ---------------- */
+const planets = []
+function makePlanet(radius, distance, speed, color){
+  const pivot = new THREE.Object3D()
+  const mesh = new THREE.Mesh(
+    new THREE.SphereGeometry(radius,48,48),
+    new THREE.MeshStandardMaterial({color})
+  )
+  mesh.position.x = distance
+  pivot.add(mesh)
+  scene.add(pivot)
+  planets.push({pivot,speed})
 }
-spawnGalacticDust();
 
-// ===== SUN =====
-const sun=new THREE.Mesh(new THREE.SphereGeometry(280,64,64),new THREE.MeshStandardMaterial({emissive:0xffee88,emissiveIntensity:2.2}));
-scene.add(sun);
-scene.add(new THREE.PointLight(0xffeeaa,7,20000));
+makePlanet(10, 140, 0.020, 0xaaaaaa) // Mercury
+makePlanet(14, 200, 0.015, 0xffaa66) // Venus
+makePlanet(16, 260, 0.012, 0x2266ff) // Earth
+makePlanet(14, 320, 0.010, 0xff4422) // Mars
+makePlanet(30, 420, 0.006, 0xffcc99) // Jupiter
+makePlanet(26, 540, 0.005, 0xffddaa) // Saturn
+makePlanet(22, 660, 0.004, 0x66ccff) // Uranus
+makePlanet(20, 780, 0.003, 0x3355ff) // Neptune
 
-// ===== PLANETS =====
-const planets=[];
-function planet(dist,size,color,speed){
-  const m=new THREE.Mesh(new THREE.SphereGeometry(size,48,48),new THREE.MeshStandardMaterial({color}));
-  m.userData={dist,ang:Math.random()*6.28,spd:speed};
-  scene.add(m); planets.push(m);
-}
-planet(500,30,0xbebebe,.018);
-planet(750,55,0xffcc88,.014);
-planet(1050,65,0x3366ff,.010);
-planet(1400,48,0xff5533,.008);
-planet(1800,160,0xffbb88,.006);
-planet(2400,140,0xccaa88,.004);
-planet(3000,110,0x66ccff,.003);
-planet(3600,105,0x4455ff,.002);
-
-// ===== LOOP =====
+/* ---------------- LOOP ---------------- */
 function animate(){
-  requestAnimationFrame(animate);
-  planets.forEach(p=>{
-    p.userData.ang+=p.userData.spd;
-    p.position.set(Math.cos(p.userData.ang)*p.userData.dist,0,Math.sin(p.userData.ang)*p.userData.dist);
-    p.rotation.y+=.004;
-  });
-  dust.forEach((d,i)=>{
-    d.rotation.y+=0.00008*(i+1);
-    d.rotation.x+=0.00004*(i+1);
-  });
-  renderer.render(scene,camera);
+  requestAnimationFrame(animate)
+  planets.forEach(p => p.pivot.rotation.y += p.speed) // Counter-clockwise
+  controls.update()
+  renderer.render(scene, camera)
 }
-animate();
+animate()
 
-addEventListener("resize",()=>{
-  camera.aspect=innerWidth/innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth,innerHeight);
-});
+window.addEventListener('resize',()=>{
+  camera.aspect = innerWidth/innerHeight
+  camera.updateProjectionMatrix()
+  renderer.setSize(innerWidth, innerHeight)
+})
