@@ -5,6 +5,7 @@ const planets = [];
 const moons = [];
 const asteroids = [];
 const comets = [];
+const nebula = [];
 const life = [];
 const habitability = new Map();
 
@@ -71,6 +72,7 @@ function init(){
   spawnMoon(planets[2]);
   spawnAsteroidBelt();
   spawnComet();
+  spawnNebula();
 
   // GPU LIFE FIELD
   const lifeGeo = new THREE.SphereGeometry(0.8,8,8);
@@ -131,10 +133,10 @@ function addSaturnRings(p){
 // ---------- Earth ----------
 function addEarthLife(p){
   const c=new THREE.Mesh(new THREE.SphereGeometry(21,32,32),new THREE.MeshStandardMaterial({
-    map:loader.load("/textures/earth_clouds.JPG"),transparent:true,opacity:0.85,depthWrite:false
+    map:loader.load("/textures/earth_clouds.png"),transparent:true,opacity:0.85,depthWrite:false
   }));
   const nm=new THREE.Mesh(new THREE.SphereGeometry(21.05,32,32),new THREE.MeshBasicMaterial({
-    map:loader.load("/textures/earth_night.JPG"),transparent:true,blending:THREE.AdditiveBlending
+    map:loader.load("/textures/earth_night.jpg"),transparent:true,blending:THREE.AdditiveBlending
   }));
   nm.onBeforeRender=()=>{const f=p.position.clone().normalize().negate().dot(new THREE.Vector3(0,0,1));nm.material.opacity=THREE.MathUtils.clamp(-f,0,1)};
   p.add(nm); p.add(c);
@@ -170,6 +172,19 @@ function spawnComet(){
   comets.push(c); scene.add(c);
 }
 
+// ---------- Nebula ----------
+function spawnNebula(){
+  for(let i=0;i<6;i++){
+    const mat = new THREE.MeshBasicMaterial({
+      color:new THREE.Color(`hsl(${210+Math.random()*60},70%,30%)`),
+      transparent:true,opacity:0.08,blending:THREE.AdditiveBlending,depthWrite:false
+    });
+    const p=new THREE.Mesh(new THREE.PlaneGeometry(8000,8000),mat);
+    p.position.set((Math.random()-0.5)*4000,(Math.random()-0.5)*4000,-3000-Math.random()*3000);
+    nebula.push(p); scene.add(p);
+  }
+}
+
 // ---------- Animate ----------
 function animate(){
   requestAnimationFrame(animate);
@@ -203,13 +218,17 @@ function animate(){
     l.a += 0.01;
     tmpMatrix.makeTranslation(p.x+Math.cos(l.a)*l.r,0,p.z+Math.sin(l.a)*l.r);
     lifeMesh.setMatrixAt(i,tmpMatrix);
-
     l.life -= 0.25;
-    if(Math.random() < 0.003 && lifeCount < MAX_LIFE) spawnLife(l.p);
+    if(Math.random()<0.003 && lifeCount<MAX_LIFE) spawnLife(l.p);
     if(l.p===planets[2] && l.adapt>0.55 && Math.random()<0.00012) l.p=planets[3];
-    if(l.life <= 0){ life[i]=life[lifeCount-1]; lifeCount--; }
+    if(l.life<=0){ life[i]=life[lifeCount-1]; lifeCount--; }
   }
-  lifeMesh.instanceMatrix.needsUpdate = true;
+  lifeMesh.instanceMatrix.needsUpdate=true;
+
+  nebula.forEach((n,i)=>{
+    n.rotation.z+=0.00005;
+    n.position.x+=Math.sin(Date.now()*0.00002+i)*0.2;
+  });
 
   renderer.render(scene,camera);
 }
