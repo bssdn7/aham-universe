@@ -7,6 +7,10 @@ const asteroids = [];
 const comets = [];
 const life = [];
 const habitability = new Map();
+
+let lifeMesh, lifeCount = 0;
+const MAX_LIFE = 3000;
+const tmpMatrix = new THREE.Matrix4();
 const loader = new THREE.TextureLoader();
 
 init();
@@ -67,7 +71,13 @@ function init(){
   spawnMoon(planets[2]);
   spawnAsteroidBelt();
   spawnComet();
-  spawnLife(planets[2],40);
+
+  // GPU LIFE FIELD
+  const lifeGeo = new THREE.SphereGeometry(0.8,8,8);
+  const lifeMat = new THREE.MeshBasicMaterial({color:0x00ff88});
+  lifeMesh = new THREE.InstancedMesh(lifeGeo, lifeMat, MAX_LIFE);
+  scene.add(lifeMesh);
+  for(let i=0;i<120;i++) spawnLife(planets[2]);
 
   window.onresize=()=>{
     camera.aspect=innerWidth/innerHeight;
@@ -131,12 +141,16 @@ function addEarthLife(p){
 }
 
 // ---------- Life ----------
-function spawnLife(p,count=30){
-  for(let i=0;i<count;i++){
-    const d=new THREE.Mesh(new THREE.SphereGeometry(0.8,8,8),new THREE.MeshBasicMaterial({color:0x00ff88}));
-    d.userData={p,a:Math.random()*Math.PI*2,r:22+Math.random()*3,life:200+Math.random()*300,adapt:habitability.get(p)||0.1};
-    life.push(d); scene.add(d);
-  }
+function spawnLife(planet){
+  if(lifeCount >= MAX_LIFE) return;
+  const id = lifeCount++;
+  life[id] = {
+    p: planet,
+    a: Math.random()*Math.PI*2,
+    r: 22+Math.random()*3,
+    life: 400+Math.random()*600,
+    adapt: habitability.get(planet)||0.1
+  };
 }
 
 // ---------- Asteroids ----------
@@ -183,40 +197,19 @@ function animate(){
     c.position.set(Math.cos(c.userData.a)*c.userData.d,0,Math.sin(c.userData.a)*c.userData.d);
   });
 
-  life.forEach((l,i)=>{
-  const p = l.userData.p.position;
-  l.userData.a += 0.01;
-  l.position.set(
-    p.x + Math.cos(l.userData.a) * l.userData.r,
-    0,
-    p.z + Math.sin(l.userData.a) * l.userData.r
-  );
+  for(let i=0;i<lifeCount;i++){
+    const l = life[i];
+    const p = l.p.position;
+    l.a += 0.01;
+    tmpMatrix.makeTranslation(p.x+Math.cos(l.a)*l.r,0,p.z+Math.sin(l.a)*l.r);
+    lifeMesh.setMatrixAt(i,tmpMatrix);
 
-  // slow aging
-  l.userData.life -= 0.3;
-
-  // mutation (slower & stable)
-  if(Math.random() < 0.001){
-    l.userData.adapt += (Math.random()-0.5)*0.03;
+    l.life -= 0.25;
+    if(Math.random() < 0.003 && lifeCount < MAX_LIFE) spawnLife(l.p);
+    if(l.p===planets[2] && l.adapt>0.55 && Math.random()<0.00012) l.p=planets[3];
+    if(l.life <= 0){ life[i]=life[lifeCount-1]; lifeCount--; }
   }
-
-  // reproduction (self-sustaining)
-  if(Math.random() < 0.004){
-    spawnLife(l.userData.p, 1);
-  }
-
-  // migration chance
-  if(l.userData.p === planets[2] && l.userData.adapt > 0.55 && Math.random() < 0.0001){
-    l.userData.p = planets[3];
-    l.material.color.set(0xff5533);
-  }
-
-  // death (natural)
-  if(l.userData.life <= 0){
-    scene.remove(l);
-    life.splice(i,1);
-  }
-});
+  lifeMesh.instanceMatrix.needsUpdate = true;
 
   renderer.render(scene,camera);
 }
