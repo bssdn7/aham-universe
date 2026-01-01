@@ -184,24 +184,39 @@ function animate(){
   });
 
   life.forEach((l,i)=>{
-    l.userData.life--;
-    const p=l.userData.p.position;
-    l.userData.a+=0.01;
-    l.position.set(p.x+Math.cos(l.userData.a)*l.userData.r,0,p.z+Math.sin(l.userData.a)*l.userData.r);
+  const p = l.userData.p.position;
+  l.userData.a += 0.01;
+  l.position.set(
+    p.x + Math.cos(l.userData.a) * l.userData.r,
+    0,
+    p.z + Math.sin(l.userData.a) * l.userData.r
+  );
 
-    if(Math.random()<0.002) l.userData.adapt += (Math.random()-0.5)*0.05;
-    if(Math.random()<0.0006) spawnLife(l.userData.p,1);
+  // slow aging
+  l.userData.life -= 0.3;
 
-    if(l.userData.p===planets[2] && l.userData.adapt>0.6 && Math.random()<0.00005){
-      l.userData.p = planets[3];
-      l.material.color.set(0xff5533);
-    }
+  // mutation (slower & stable)
+  if(Math.random() < 0.001){
+    l.userData.adapt += (Math.random()-0.5)*0.03;
+  }
 
-    if(l.userData.life<=0 || l.userData.adapt<0){
-      scene.remove(l);
-      life.splice(i,1);
-    }
-  });
+  // reproduction (self-sustaining)
+  if(Math.random() < 0.004){
+    spawnLife(l.userData.p, 1);
+  }
+
+  // migration chance
+  if(l.userData.p === planets[2] && l.userData.adapt > 0.55 && Math.random() < 0.0001){
+    l.userData.p = planets[3];
+    l.material.color.set(0xff5533);
+  }
+
+  // death (natural)
+  if(l.userData.life <= 0){
+    scene.remove(l);
+    life.splice(i,1);
+  }
+});
 
   renderer.render(scene,camera);
 }
