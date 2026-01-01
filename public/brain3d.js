@@ -5,7 +5,7 @@ const planets = [];
 const moons = [];
 const asteroids = [];
 const comets = [];
-const nebula = [];
+const dust = [];
 const life = [];
 const habitability = new Map();
 
@@ -19,7 +19,7 @@ animate();
 
 function init(){
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x000000);
+  scene.background = new THREE.Color(0x000005);
 
   camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 30000);
   camera.position.set(0,200,700);
@@ -30,16 +30,16 @@ function init(){
   renderer.setPixelRatio(1);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 2.4;
+  renderer.toneMappingExposure = 2.6;
   renderer.physicallyCorrectLights = true;
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   document.body.appendChild(renderer.domElement);
 
-  scene.add(new THREE.AmbientLight(0x182040,1.2));
-  scene.add(new THREE.HemisphereLight(0x88aaff,0x020210,1.3));
+  scene.add(new THREE.AmbientLight(0x101020,1));
+  scene.add(new THREE.HemisphereLight(0x88aaff,0x020210,0.8));
 
-  const sunLight = new THREE.PointLight(0xfff2aa,110000,350000,2);
+  const sunLight = new THREE.PointLight(0xfff2cc,140000,350000,2);
   sunLight.position.set(0,0,0);
   sunLight.castShadow=true;
   sunLight.shadow.mapSize.set(1024,1024);
@@ -49,13 +49,14 @@ function init(){
 
   scene.add(new THREE.Mesh(
     new THREE.SphereGeometry(90,32,32),
-    new THREE.MeshStandardMaterial({color:0xfff2aa,emissive:new THREE.Color(0xfff2aa).multiplyScalar(10)})
+    new THREE.MeshStandardMaterial({color:0xfff2cc,emissive:new THREE.Color(0xfff2cc).multiplyScalar(10)})
   ));
 
+  // Stars
   const starGeo=new THREE.BufferGeometry(),pos=[];
-  for(let i=0;i<4000;i++) pos.push((Math.random()-0.5)*16000,(Math.random()-0.5)*16000,(Math.random()-0.5)*16000);
+  for(let i=0;i<4500;i++) pos.push((Math.random()-0.5)*20000,(Math.random()-0.5)*20000,(Math.random()-0.5)*20000);
   starGeo.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));
-  scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,size:1})));
+  scene.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0xffffff,size:1.1})));
 
   spawnMercury(140);
   spawnVenus(190);
@@ -72,7 +73,7 @@ function init(){
   spawnMoon(planets[2]);
   spawnAsteroidBelt();
   spawnComet();
-  spawnNebula();
+  spawnGalacticDust();
 
   // GPU LIFE FIELD
   const lifeGeo = new THREE.SphereGeometry(0.8,8,8);
@@ -93,7 +94,7 @@ function makeTexturedWorld(dist,size,map,normal=null){
   const mat = new THREE.MeshStandardMaterial({
     map: loader.load(map),
     normalMap: normal ? loader.load(normal) : null,
-    roughness:0.6,
+    roughness:0.55,
     metalness:0,
     emissive:new THREE.Color(0xffffff).multiplyScalar(0.01)
   });
@@ -172,17 +173,21 @@ function spawnComet(){
   comets.push(c); scene.add(c);
 }
 
-// ---------- Nebula ----------
-function spawnNebula(){
-  for(let i=0;i<6;i++){
-    const mat = new THREE.MeshBasicMaterial({
-      color:new THREE.Color(`hsl(${210+Math.random()*60},70%,30%)`),
-      transparent:true,opacity:0.08,blending:THREE.AdditiveBlending,depthWrite:false
-    });
-    const p=new THREE.Mesh(new THREE.PlaneGeometry(8000,8000),mat);
-    p.position.set((Math.random()-0.5)*4000,(Math.random()-0.5)*4000,-3000-Math.random()*3000);
-    nebula.push(p); scene.add(p);
+// ---------- Galactic Dust ----------
+function spawnGalacticDust(){
+  const geo=new THREE.BufferGeometry(),p=[],c=[];
+  for(let i=0;i<18000;i++){
+    const r=8000*Math.random(),a=Math.random()*Math.PI*2,y=(Math.random()-0.5)*3000;
+    p.push(Math.cos(a)*r,y,Math.sin(a)*r);
+    c.push(0.3+Math.random()*0.7,0.4+Math.random()*0.6,1);
   }
+  geo.setAttribute("position",new THREE.Float32BufferAttribute(p,3));
+  geo.setAttribute("color",new THREE.Float32BufferAttribute(c,3));
+  const cloud=new THREE.Points(geo,new THREE.PointsMaterial({
+    size:2,vertexColors:true,transparent:true,opacity:0.35,blending:THREE.AdditiveBlending,depthWrite:false
+  }));
+  scene.add(cloud);
+  dust.push(cloud);
 }
 
 // ---------- Animate ----------
@@ -225,10 +230,7 @@ function animate(){
   }
   lifeMesh.instanceMatrix.needsUpdate=true;
 
-  nebula.forEach((n,i)=>{
-    n.rotation.z+=0.00005;
-    n.position.x+=Math.sin(Date.now()*0.00002+i)*0.2;
-  });
+  dust.forEach(d=>{ d.rotation.y += 0.00002; });
 
   renderer.render(scene,camera);
 }
